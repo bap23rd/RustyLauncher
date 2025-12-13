@@ -1,0 +1,336 @@
+.version-library {
+    margin-top: 2rem;
+}
+
+.library-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.library-header h2 {
+    color: var(--secondary-color);
+    margin: 0;
+}
+
+.btn-add-location {
+    padding: 0.5rem 1rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1px;
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-add-location:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.version-library h2 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+}
+
+.version-library-empty {
+    text-align: center;
+    padding: 3rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    color: #aaa;
+}
+
+.version-library-empty p {
+    margin: 0.5rem 0;
+}
+
+.version-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(350px, 100%), 1fr));
+    gap: 1.5rem;
+}
+
+.version-card {
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(206, 66, 43, 0.3);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s;
+    position: relative;
+}
+
+.version-card:hover {
+    border-color: var(--secondary-color);
+}
+
+.recently-played-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 0.25rem 1rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(206, 66, 43, 0.5);
+}
+
+.version-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.version-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: white;
+    word-break: break-word;
+    flex: 1;
+}
+
+.version-icons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: transform 0.2s;
+}
+
+.icon-btn:hover:not(:disabled) {
+    transform: scale(1.2);
+}
+
+.icon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cog-btn {
+    color: #aaa;
+}
+
+.bin-btn {
+    color: #d32f2f;
+}
+
+.extra-settings-menu {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--secondary-color);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.extra-settings-menu button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.9rem;
+}
+
+.extra-settings-menu button:hover {
+    background-color: rgba(206, 66, 43, 0.2);
+}
+
+.rename-input-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex: 1;
+}
+
+.rename-input {
+    flex: 1;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--secondary-color);
+    border-radius: 4px;
+    color: white;
+    font-size: 1rem;
+}
+
+.rename-input:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 2px rgba(206, 66, 43, 0.2);
+}
+
+.btn-rename-confirm,
+.btn-rename-cancel {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 1px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.btn-rename-confirm {
+    background-color: #4caf50;
+    color: white;
+}
+
+.btn-rename-confirm:hover {
+    background-color: #45a049;
+}
+
+.btn-rename-cancel {
+    background-color: #d32f2f;
+    color: white;
+}
+
+.btn-rename-cancel:hover {
+    background-color: #b71c1c;
+}
+
+.version-details {
+    margin-bottom: 1.5rem;
+}
+
+.version-details p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #ddd;
+}
+
+.version-path {
+    font-size: 0.8rem;
+    color: #999;
+    word-break: break-all;
+}
+
+.eac-badge {
+    display: inline-block;
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+}
+
+.version-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-launch,
+.btn-launch-no-eac {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.6rem 1rem;
+    border-radius: 1px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-launch {
+    background-color: #738d45;
+    color: white;
+}
+
+.btn-launch:hover:not(:disabled) {
+    background-color: #5f7639;
+}
+
+.btn-launch-no-eac {
+    background-color: #4394ce;
+    color: white;
+}
+
+.btn-launch-no-eac:hover:not(:disabled) {
+    background-color: #3782bb;
+}
+
+.btn-launch:disabled,
+.btn-launch-no-eac:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.version-card {
+    position: relative;
+}
+
+.overlay-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: inherit;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    color: white;
+    text-align: center;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--secondary-color);
+    transition: width 0.2s ease;
+}
+
+.operation-status {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.operation-log {
+    font-size: 0.75rem;
+    color: #999;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0.25rem;
+}
+
+.version-card.placeholder {
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    min-height: 200px;
+    /* Approximate height of a card */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

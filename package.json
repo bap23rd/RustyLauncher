@@ -1,0 +1,53 @@
+{
+  "name": "rustylauncher",
+  "productName": "RustyLauncher",
+  "private": true,
+  "version": "1.1.2",
+  "description": "A desktop application for managing and launching different versions of Rust",
+  "author": "RustyLauncher",
+  "main": "dist-electron/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on tcp:5173 && cross-env NODE_ENV=development electron .\"",
+    "build": "tsc -b && vite build && tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
+    "electron:build": "tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "pack": "electron-builder --win",
+    "package": "npm run build && npm run pack"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "archiver-utils": "^5.0.2",
+    "axios": "^1.13.2",
+    "better-sqlite3": "^12.5.0",
+    "extract-zip": "^2.0.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "rss-parser": "^3.13.0",
+    "zip-stream": "^6.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/archiver": "^7.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/extract-zip": "^2.0.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^39.2.5",
+    "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4",
+    "wait-on": "^9.0.3"
+  }
+}

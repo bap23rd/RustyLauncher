@@ -1,0 +1,224 @@
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 80px;
+  /* Space for sticky footer */
+  overflow-x: hidden;
+  /* Prevent horizontal scroll */
+}
+
+.content-wrapper {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+  padding: 0 3rem;
+  /* Space for settings icon */
+}
+
+.settings-icon {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: transform 0.2s;
+  z-index: 100;
+}
+
+.settings-icon:hover {
+  transform: rotate(45deg);
+}
+
+.header h1 {
+  color: var(--secondary-color);
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: #ddd;
+  font-size: 1.2rem;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.download-btn,
+.library-btn,
+.back-btn {
+  padding: 0.75rem 2rem;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 1px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.download-btn:hover,
+.library-btn:hover,
+.back-btn:hover {
+  background-color: #b33722;
+}
+
+.library-btn {
+  background-color: rgba(206, 66, 43, 0.3);
+  border: 1px solid var(--secondary-color);
+}
+
+.library-btn:hover {
+  background-color: rgba(206, 66, 43, 0.5);
+}
+
+.back-btn {
+  background-color: rgba(206, 66, 43, 0.3);
+  border: 1px solid var(--secondary-color);
+}
+
+.back-btn:hover {
+  background-color: rgba(206, 66, 43, 0.5);
+}
+
+.unarchive-btn {
+  padding: 0.75rem 2rem;
+  background-color: rgba(255, 152, 0, 0.3);
+  color: white;
+  border: 1px solid #ff9800;
+  border-radius: 1px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.unarchive-btn:hover {
+  background-color: rgba(255, 152, 0, 0.5);
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+
+
+.prompt-arrow {
+  font-size: 1.2rem;
+}
+
+.news-section h2 {
+  color: var(--secondary-color);
+  margin-bottom: 1.5rem;
+}
+
+.news-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 1.5rem;
+}
+
+.news-card {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(206, 66, 43, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.news-card:hover {
+  border-color: var(--secondary-color);
+}
+
+.news-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: white;
+}
+
+.news-date {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.news-body {
+  color: #ddd;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.read-more {
+  padding: 0.6rem 1.5rem;
+  background-color: #738d45;
+  color: white;
+  border: none;
+  border-radius: 1px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.read-more:hover {
+  background-color: #5f7639;
+  text-decoration: none;
+}
+
+.news-footer {
+  margin-top: 2rem;
+  text-align: center;
+  padding: 1.5rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.read-more-link {
+  color: var(--secondary-color);
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.read-more-link:hover {
+  text-decoration: underline;
+}
+
+.library-page {
+  width: 100%;
+}
+
+.section-divider {
+  border: none;
+  border-top: 2px solid rgba(206, 66, 43, 0.3);
+  margin: 2rem 0;
+}
+
+.empty-message {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}

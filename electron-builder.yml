@@ -1,0 +1,28 @@
+appId: com.rustylauncher.app
+productName: RustyLauncher
+
+directories:
+  output: release
+
+asar: false
+npmRebuild: false
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - resources/**/*
+  - package.json
+  - "!node_modules/.cache"
+
+win:
+  target: nsis
+  icon: resources/RustyLauncher.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: resources/RustyLauncher.ico
+  uninstallerIcon: resources/RustyLauncher.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: RustyLauncher
