@@ -1,0 +1,23 @@
+
+{
+  "recommended": [
+    {
+      "title": "Rust Final Update Nov-25",
+      "clientManifest": "3825597538119236836",
+      "bundleManifest": "2236390245623289105",
+      "versionDate": "11-11-2025"
+    },
+    {
+      "title": "Rust Stable July 2023",
+      "clientManifest": "2486676083669216181",
+      "bundleManifest": "3732538865539399361",
+      "versionDate": "09-07-2023"
+    },
+    {
+      "title": "Rust pre-graphics overhaul",
+      "clientManifest": "3350627055610890986",
+      "bundleManifest": "6875487482725634836",
+      "versionDate": "15-04-2021"
+    }
+  ]
+}

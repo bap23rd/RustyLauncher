@@ -1,0 +1,23 @@
+
+{
+  "other": [
+    {
+      "title": "Latest updated dec-2025",
+      "clientManifest": "3669179739652928473",
+      "bundleManifest": "5984063624249894514",
+      "versionDate": "06-12-2025"
+    },
+    {
+      "title": "Buggy update march 2023",
+      "clientManifest": "4422807934979913619",
+      "bundleManifest": "3773572716586542542",
+      "versionDate": "06-03-2023"
+    },
+    {
+      "title": "Oooollldd Rust",
+      "clientManifest": "2601732563690020956",
+      "bundleManifest": "6625475738244667503",
+      "versionDate": "27-01-2018"
+    }
+  ]
+}
