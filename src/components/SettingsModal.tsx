@@ -201,7 +201,7 @@ export function SettingsModal({ onClose, initialSection = 'general' }: SettingsM
                                     <h4>Links</h4>
                                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                                         <a
-                                            href="https://github.com/yourusername/rustylauncher"
+                                            href="https://github.com/bap23rd/RustyLauncher"
                                             target="_blank"
                                             rel="noreferrer"
                                             className="link-button"

@@ -451,31 +451,76 @@ ipcMain.handle('delete-setting', (_event: any, key: string) => {
     return { success: true };
 });
 
-// Curated Versions IPC Handlers
-ipcMain.handle('get-curated-versions-rl', () => {
+// GitHub raw URLs for curated versions
+const GITHUB_VERSION_RL_URL = 'https://raw.githubusercontent.com/bap23rd/RustyLauncher/main/resources/versionRL.json';
+const GITHUB_VERSION_OTHER_URL = 'https://raw.githubusercontent.com/bap23rd/RustyLauncher/main/resources/versionOther.json';
+
+// Helper function to fetch JSON from URL
+async function fetchJsonFromUrl(url: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            if (res.statusCode !== 200) {
+                reject(new Error(`HTTP ${res.statusCode}`));
+                return;
+            }
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data));
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        }).on('error', reject);
+    });
+}
+
+// Curated Versions IPC Handlers - Fetch from GitHub with local cache fallback
+ipcMain.handle('get-curated-versions-rl', async () => {
+    const cacheFilePath = path.join(app.getPath('userData'), 'versionRL.json');
+
     try {
-        const filePath = path.join(app.getPath('userData'), 'versionRL.json');
-        if (!fs.existsSync(filePath)) {
-            return { recommended: [] };
+        // Try to fetch from GitHub
+        const data = await fetchJsonFromUrl(GITHUB_VERSION_RL_URL);
+        // Cache the fetched data locally
+        fs.writeFileSync(cacheFilePath, JSON.stringify(data, null, 2), 'utf-8');
+        return data;
+    } catch (fetchError) {
+        console.warn('Failed to fetch versionRL.json from GitHub, using cache:', fetchError);
+        // Fallback to cached file
+        try {
+            if (fs.existsSync(cacheFilePath)) {
+                const cachedData = fs.readFileSync(cacheFilePath, 'utf-8');
+                return JSON.parse(cachedData);
+            }
+        } catch (cacheError) {
+            console.error('Error reading cached versionRL.json:', cacheError);
         }
-        const data = fs.readFileSync(filePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error('Error reading versionRL.json:', error);
         return { recommended: [] };
     }
 });
 
-ipcMain.handle('get-curated-versions-other', () => {
+ipcMain.handle('get-curated-versions-other', async () => {
+    const cacheFilePath = path.join(app.getPath('userData'), 'versionOther.json');
+
     try {
-        const filePath = path.join(app.getPath('userData'), 'versionOther.json');
-        if (!fs.existsSync(filePath)) {
-            return { recommended: [] };
+        // Try to fetch from GitHub
+        const data = await fetchJsonFromUrl(GITHUB_VERSION_OTHER_URL);
+        // Cache the fetched data locally
+        fs.writeFileSync(cacheFilePath, JSON.stringify(data, null, 2), 'utf-8');
+        return data;
+    } catch (fetchError) {
+        console.warn('Failed to fetch versionOther.json from GitHub, using cache:', fetchError);
+        // Fallback to cached file
+        try {
+            if (fs.existsSync(cacheFilePath)) {
+                const cachedData = fs.readFileSync(cacheFilePath, 'utf-8');
+                return JSON.parse(cachedData);
+            }
+        } catch (cacheError) {
+            console.error('Error reading cached versionOther.json:', cacheError);
         }
-        const data = fs.readFileSync(filePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error('Error reading versionOther.json:', error);
         return { recommended: [] };
     }
 });

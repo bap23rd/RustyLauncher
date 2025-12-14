@@ -5,6 +5,14 @@
   "version": "1.1.2",
   "description": "A desktop application for managing and launching different versions of Rust",
   "author": "RustyLauncher",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bap23rd/RustyLauncher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bap23rd/RustyLauncher/issues"
+  },
+  "homepage": "https://github.com/bap23rd/RustyLauncher#readme",
   "main": "dist-electron/main.js",
   "type": "module",
   "scripts": {
