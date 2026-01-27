@@ -286,9 +286,6 @@ export function VersionLibrary({ onRefresh, activeOperations = [], onOpenInstall
                                 <p><strong>Manifest:</strong> {version.manifestId}</p>
                                 <p><strong>Depot:</strong> {version.depotId}</p>
                                 <p className="version-path"><strong>Path:</strong> {version.installPath}</p>
-                                {eacAvailability[version.id] && (
-                                    <span className="eac-badge">EAC Available</span>
-                                )}
                             </div>
 
                             <div className="version-actions">
