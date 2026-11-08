@@ -1,5 +1,7 @@
 import { Theme } from "../theme.slint";
+import { PathRow } from "../types.slint";
 import { PageHeader, Card, AppButton } from "../components.slint";
+import { IconButton } from "../library_components.slint";
 
 component Row inherits HorizontalLayout {
     in property <string> label;
@@ -9,46 +11,104 @@ component Row inherits HorizontalLayout {
     Text { text: root.value; color: Theme.text-secondary; font-size: 13px; overflow: elide; horizontal-stretch: 1; }
 }
 
+component SectionTitle inherits Text {
+    color: Theme.text-muted;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 export component SettingsPage inherits Rectangle {
     in property <string> data-dir;
     in property <string> app-version;
     in property <string> steam-account: "Not signed in";
+    in property <[PathRow]> path-rows;
+    in property <bool> busy;
+    callback add-path();
+    callback remove-path(string);
+    callback rescan();
+    callback archive-all();
+    callback delete-all();
     callback test-toast();
     callback test-dialog();
 
-    VerticalLayout {
-        padding: Theme.page-padding;
-        spacing: 20px;
-        PageHeader {
-            title: "Settings";
-            subtitle: "Accounts, install locations and about.";
-        }
-        Card {
-            height: 132px;
-            VerticalLayout {
-                padding: 18px;
-                spacing: 10px;
-                Text { text: "ABOUT"; color: Theme.text-muted; font-size: 12px; font-weight: 600; }
-                Row { label: "Version"; value: root.app-version; }
-                Row { label: "Data folder"; value: root.data-dir; }
-                Row { label: "Steam account"; value: root.steam-account; }
+    Flickable {
+        content-height: content.preferred-height;
+        content := VerticalLayout {
+            padding: Theme.page-padding;
+            spacing: 20px;
+            PageHeader {
+                title: "Settings";
+                subtitle: "Accounts, install locations and about.";
             }
-        }
-        Card {
-            height: 120px;
-            VerticalLayout {
-                padding: 18px;
-                spacing: 12px;
-                Text { text: "DEVELOPER"; color: Theme.text-muted; font-size: 12px; font-weight: 600; }
-                Text { text: "Try the shared notification and dialog components. Removed before release."; color: Theme.text-tertiary; font-size: 13px; }
-                HorizontalLayout {
+            Card {
+                VerticalLayout {
+                    padding: 18px;
                     spacing: 10px;
-                    alignment: start;
-                    AppButton { text: "Show notification"; primary: false; clicked => { root.test-toast(); } }
-                    AppButton { text: "Show dialog"; primary: false; clicked => { root.test-dialog(); } }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        SectionTitle { text: "INSTALL LOCATIONS"; vertical-alignment: center; horizontal-stretch: 1; }
+                        AppButton { text: "Add folder"; height: 30px; active: !root.busy; clicked => { root.add-path(); } }
+                        AppButton { text: "Scan all"; primary: false; height: 30px; active: !root.busy; clicked => { root.rescan(); } }
+                    }
+                    if root.path-rows.length == 0 : Text {
+                        text: "No folders yet. Add the folder where your versions are, or where new downloads should go.";
+                        color: Theme.text-tertiary;
+                        font-size: 13px;
+                        wrap: word-wrap;
+                    }
+                    for r in root.path-rows : HorizontalLayout {
+                        spacing: 12px;
+                        height: 30px;
+                        Text { text: r.path; color: Theme.text-secondary; font-size: 13px; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+                        Text { text: r.usage; color: Theme.text-muted; font-size: 13px; vertical-alignment: center; }
+                        IconButton { icon: @image-url("../icons/x-regular.svg"); active: !root.busy; clicked => { root.remove-path(r.path); } }
+                    }
+                }
+            }
+            Card {
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 10px;
+                    SectionTitle { text: "ABOUT"; }
+                    Row { label: "Version"; value: root.app-version; }
+                    Row { label: "Data folder"; value: root.data-dir; }
+                    Row { label: "Steam account"; value: root.steam-account; }
+                }
+            }
+            Card {
+                border-color: Theme.error.with-alpha(0.35);
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 10px;
+                    SectionTitle { text: "DANGER ZONE"; }
+                    Text {
+                        text: "Free up disk space, or start over. Archiving keeps every version as a file you can restore; deleting cannot be undone.";
+                        color: Theme.text-tertiary;
+                        font-size: 13px;
+                        wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+                        AppButton { text: "Archive all versions"; primary: false; active: !root.busy; clicked => { root.archive-all(); } }
+                        AppButton { text: "Delete all versions"; primary: false; active: !root.busy; clicked => { root.delete-all(); } }
+                    }
+                }
+            }
+            Card {
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 12px;
+                    SectionTitle { text: "DEVELOPER"; }
+                    Text { text: "Try the shared notification and dialog components. Removed before release."; color: Theme.text-tertiary; font-size: 13px; }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+                        AppButton { text: "Show notification"; primary: false; clicked => { root.test-toast(); } }
+                        AppButton { text: "Show dialog"; primary: false; clicked => { root.test-dialog(); } }
+                    }
                 }
             }
         }
-        Rectangle { vertical-stretch: 1; }
     }
 }

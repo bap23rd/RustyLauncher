@@ -1,14 +1,53 @@
 import { Theme } from "../theme.slint";
-import { VersionTile } from "../types.slint";
-import { PageHeader, VersionCard, EmptyState } from "../components.slint";
+import { VersionTile, ArchiveTile } from "../types.slint";
+import { PageHeader, EmptyState, AppButton } from "../components.slint";
+import { VersionCard, ArchiveRow } from "../library_components.slint";
+
+component Tab inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+    height: 34px;
+    Text {
+        x: 4px;
+        width: parent.width - 8px;
+        height: parent.height;
+        text: root.label;
+        color: root.active ? Theme.text-primary : (ta.has-hover ? Theme.text-secondary : Theme.text-muted);
+        font-size: 14px;
+        font-weight: root.active ? 700 : 400;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+    }
+    Rectangle {
+        y: parent.height - 2px;
+        height: 2px;
+        background: root.active ? Theme.accent : transparent;
+    }
+    ta := TouchArea {
+        mouse-cursor: MouseCursor.pointer;
+        clicked => { root.clicked(); }
+    }
+}
 
 export component LibraryPage inherits Rectangle {
     in property <[VersionTile]> versions;
+    in property <[ArchiveTile]> archives;
+    in property <bool> busy;
     callback go-download();
+    callback launch(string);
+    callback browse(string);
+    callback rename(VersionTile);
+    callback archive(VersionTile);
+    callback delete(VersionTile);
+    callback restore(ArchiveTile);
+    callback delete-archive(ArchiveTile);
+    callback rescan();
 
+    property <int> tab: 0;
     property <length> gap: 16px;
-    property <length> card-h: 128px;
-    property <length> min-card-w: 300px;
+    property <length> card-h: 168px;
+    property <length> min-card-w: 330px;
     property <length> avail: root.width - 2 * Theme.page-padding;
     property <int> cols: max(1, floor((root.avail + root.gap) / (root.min-card-w + root.gap)));
     property <length> card-w: (root.avail - (root.cols - 1) * root.gap) / root.cols;
@@ -16,18 +55,32 @@ export component LibraryPage inherits Rectangle {
     VerticalLayout {
         padding: Theme.page-padding;
         spacing: 20px;
-        PageHeader {
-            title: "Library";
-            subtitle: root.versions.length == 0 ? "Nothing installed yet" : root.versions.length + (root.versions.length == 1 ? " version installed" : " versions installed");
+        HorizontalLayout {
+            spacing: 16px;
+            PageHeader {
+                horizontal-stretch: 1;
+                title: "Library";
+                subtitle: root.versions.length == 0 ? "Nothing installed yet" : root.versions.length + (root.versions.length == 1 ? " version installed" : " versions installed");
+            }
+            VerticalLayout {
+                alignment: end;
+                HorizontalLayout {
+                    spacing: 12px;
+                    Tab { label: "Installed (" + root.versions.length + ")"; active: root.tab == 0; width: 120px; clicked => { root.tab = 0; } }
+                    Tab { label: "Archived (" + root.archives.length + ")"; active: root.tab == 1; width: 120px; clicked => { root.tab = 1; } }
+                    AppButton { text: "Scan folders"; primary: false; height: 32px; width: 130px; active: !root.busy; clicked => { root.rescan(); } }
+                }
+            }
         }
-        if root.versions.length == 0 : EmptyState {
+
+        if root.tab == 0 && root.versions.length == 0 : EmptyState {
             vertical-stretch: 1;
             title: "Your library is empty";
-            body: "Versions you download appear here as tiles.";
+            body: "Versions you download appear here as tiles. Already have some on disk? Add their folder in Settings and press Scan folders.";
             action: "Go to Download";
             action-clicked => { root.go-download(); }
         }
-        if root.versions.length > 0 : Flickable {
+        if root.tab == 0 && root.versions.length > 0 : Flickable {
             vertical-stretch: 1;
             content-height: ceil(root.versions.length / root.cols) * (root.card-h + root.gap);
             for v[i] in root.versions : VersionCard {
@@ -36,6 +89,31 @@ export component LibraryPage inherits Rectangle {
                 width: root.card-w;
                 height: root.card-h;
                 tile: v;
+                busy: root.busy;
+                launch => { root.launch(v.id); }
+                browse => { root.browse(v.id); }
+                rename => { root.rename(v); }
+                archive => { root.archive(v); }
+                delete => { root.delete(v); }
+            }
+        }
+
+        if root.tab == 1 && root.archives.length == 0 : EmptyState {
+            vertical-stretch: 1;
+            title: "No archived versions";
+            body: "Archiving packs a version into one file and frees its folder. Use the archive button on a version tile.";
+        }
+        if root.tab == 1 && root.archives.length > 0 : Flickable {
+            vertical-stretch: 1;
+            content-height: root.archives.length * (64px + 12px);
+            for a[i] in root.archives : ArchiveRow {
+                x: 0px;
+                y: i * (64px + 12px);
+                width: parent.width;
+                archive: a;
+                busy: root.busy;
+                restore => { root.restore(a); }
+                delete => { root.delete-archive(a); }
             }
         }
     }

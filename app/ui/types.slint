@@ -6,4 +6,24 @@ export struct VersionTile {
     date: string,
     played: string,
     eac: bool,
+    // The game's files are not at the recorded location (moved or drive unplugged).
+    missing: bool,
+}
+
+export struct ArchiveTile {
+    name: string,
+    size: string,
+    path: string,
+}
+
+export struct PathRow {
+    path: string,
+    usage: string,
+}
+
+export struct CuratedTile {
+    title: string,
+    date: string,
+    client: string,
+    bundle: string,
 }

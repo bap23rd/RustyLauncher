@@ -9,9 +9,52 @@ use std::path::Path;
 /// File that marks a folder as an installed game client.
 const CLIENT_EXE: &str = "RustClient.exe";
 
-/// Find installed game versions under one install path. Never touches the disk beyond reading.
-///
+/// Read one install folder as a version, or `None` if it is not an install (no game executable).
 /// A damaged sidecar does not hide the install: it is listed under a generated name.
+pub fn version_from_dir(dir: &Path) -> Option<Version> {
+    if !dir.join(CLIENT_EXE).is_file() {
+        return None;
+    }
+    let folder = dir.file_name()?.to_string_lossy().into_owned();
+    let sidecar = match read_version_sidecar(dir) {
+        Ok(s) => s,
+        Err(err) => {
+            tracing::warn!(%err, "ignoring damaged version sidecar");
+            None
+        }
+    };
+    let (name, manifest_id, download_date, bundles) = match sidecar {
+        Some(s) => (
+            s.name,
+            if s.manifest_id.is_empty() {
+                folder.clone()
+            } else {
+                s.manifest_id
+            },
+            s.download_date,
+            s.bundles_manifest_id,
+        ),
+        None => (String::new(), folder.clone(), None, None),
+    };
+    let name = if name.trim().is_empty() {
+        let short: String = folder.chars().take(16).collect();
+        format!("Discovered: {short}...")
+    } else {
+        name
+    };
+    Some(Version {
+        id: folder,
+        name,
+        manifest_id,
+        bundles_manifest_id: bundles,
+        install_path: dir.to_path_buf(),
+        download_date,
+        eac_enabled: true,
+        last_played: None,
+    })
+}
+
+/// Find installed game versions under one install path. Never touches the disk beyond reading.
 pub fn scan_versions(install_path: &Path) -> Result<Vec<Version>> {
     let base = versions_dir(install_path);
     let entries = match std::fs::read_dir(&base) {
@@ -29,52 +72,16 @@ pub fn scan_versions(install_path: &Path) -> Result<Vec<Version>> {
             continue;
         }
         let folder = entry.file_name().to_string_lossy().into_owned();
-        if folder.eq_ignore_ascii_case(ARCHIVE_DIR_NAME)
+        // `archive` and `tempBundles` are ours; dot-folders are half-finished restores.
+        if folder.starts_with('.')
+            || folder.eq_ignore_ascii_case(ARCHIVE_DIR_NAME)
             || folder.eq_ignore_ascii_case(TEMP_BUNDLES_DIR_NAME)
         {
             continue;
         }
-        let dir = entry.path();
-        if !dir.join(CLIENT_EXE).is_file() {
-            continue;
+        if let Some(v) = version_from_dir(&entry.path()) {
+            found.push(v);
         }
-
-        let sidecar = match read_version_sidecar(&dir) {
-            Ok(s) => s,
-            Err(err) => {
-                tracing::warn!(%err, "ignoring damaged version sidecar");
-                None
-            }
-        };
-        let (name, manifest_id, download_date, bundles) = match sidecar {
-            Some(s) => (
-                s.name,
-                if s.manifest_id.is_empty() {
-                    folder.clone()
-                } else {
-                    s.manifest_id
-                },
-                s.download_date,
-                s.bundles_manifest_id,
-            ),
-            None => (String::new(), folder.clone(), None, None),
-        };
-        let name = if name.trim().is_empty() {
-            let short: String = folder.chars().take(16).collect();
-            format!("Discovered: {short}...")
-        } else {
-            name
-        };
-        found.push(Version {
-            id: folder,
-            name,
-            manifest_id,
-            bundles_manifest_id: bundles,
-            install_path: dir,
-            download_date,
-            eac_enabled: true,
-            last_played: None,
-        });
     }
     found.sort_by(|a, b| {
         a.name

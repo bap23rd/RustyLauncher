@@ -1,6 +1,8 @@
 import { Theme } from "theme.slint";
-import { VersionTile } from "types.slint";
-import { NavItem, QuickLaunch, Toast, Modal, Atmosphere } from "components.slint";
+import { VersionTile, ArchiveTile, PathRow, CuratedTile } from "types.slint";
+import { NavItem, QuickLaunch, Toast, Atmosphere } from "components.slint";
+import { TaskBanner, VersionMenu } from "library_components.slint";
+import { Modal } from "dialogs.slint";
 import { TitleBar } from "titlebar.slint";
 import { HomePage } from "pages/home.slint";
 import { LibraryPage } from "pages/library.slint";
@@ -8,7 +10,7 @@ import { DownloadPage } from "pages/download.slint";
 import { ServersPage } from "pages/servers.slint";
 import { SettingsPage } from "pages/settings.slint";
 
-export { VersionTile }
+export { VersionTile, ArchiveTile, PathRow, CuratedTile }
 
 export component App inherits Window {
     title: "RustyLauncher";
@@ -34,9 +36,16 @@ export component App inherits Window {
         }
     }
 
-    // Data from Rust
+    // ---- Data from Rust ----
     in property <[VersionTile]> versions;
+    in property <[ArchiveTile]> archives;
+    in property <[PathRow]> path-rows;
+    in property <[CuratedTile]> curated-recommended;
+    in property <[CuratedTile]> curated-other;
+    in property <string> curated-status;
     in property <int> server-count;
+    // The version the quick-launch bar launches (last played, or one the user picked).
+    in property <string> selected-id;
     in property <string> last-played-name;
     in property <string> last-played-detail;
     in property <bool> has-last-played;
@@ -44,20 +53,66 @@ export component App inherits Window {
     in property <string> data-dir;
     in property <string> app-version;
 
-    // Toast + dialog state
+    // A long job (archive, restore, delete, scan) is running.
+    in property <bool> task-active;
+    in property <string> task-text;
+    in property <float> task-progress: -1;
+    in property <bool> task-cancellable;
+
+    // ---- Toast + dialog state ----
     in-out property <bool> toast-shown;
     in-out property <string> toast-text;
     in-out property <string> toast-kind: "info";
     in-out property <bool> dialog-open;
+    in-out property <string> dialog-title;
+    in-out property <string> dialog-body;
+    in-out property <string> dialog-confirm: "Confirm";
+    in-out property <bool> dialog-danger;
+    in-out property <bool> dialog-has-input;
+    in-out property <string> dialog-input;
+    in-out property <string> dialog-kind;
+    in-out property <string> dialog-arg;
+    in-out property <bool> menu-open;
 
-    callback launch-clicked();
+    // ---- Requests to Rust ----
+    callback launch-version(string);
+    callback launch-selected();
+    callback pick-version(string);
     callback eac-changed(bool);
+    callback browse-version(string);
+    callback restore-archive(string);
+    callback rescan();
+    callback add-install-path();
+    callback cancel-task();
     callback close-clicked();
+    // A confirmed dialog: kind ("rename", "delete", ...), the id it was about, and any text typed.
+    callback dialog-confirmed(string, string, string);
 
     public function show-toast(text: string, kind: string) {
         root.toast-text = text;
         root.toast-kind = kind;
         root.toast-shown = true;
+    }
+    function ask(kind: string, arg: string, title: string, body: string, confirm: string, danger: bool) {
+        root.dialog-kind = kind;
+        root.dialog-arg = arg;
+        root.dialog-title = title;
+        root.dialog-body = body;
+        root.dialog-confirm = confirm;
+        root.dialog-danger = danger;
+        root.dialog-has-input = false;
+        root.dialog-open = true;
+    }
+    function ask-text(kind: string, arg: string, title: string, initial: string, confirm: string) {
+        root.dialog-kind = kind;
+        root.dialog-arg = arg;
+        root.dialog-title = title;
+        root.dialog-body = "";
+        root.dialog-confirm = confirm;
+        root.dialog-danger = false;
+        root.dialog-has-input = true;
+        root.dialog-input = initial;
+        root.dialog-open = true;
     }
 
     Timer {
@@ -124,35 +179,105 @@ export component App inherits Window {
                         width: parent.width;
                         height: parent.height;
                         versions: root.versions;
+                        archives: root.archives;
+                        busy: root.task-active;
                         go-download => { root.page = "download"; }
+                        launch(id) => { root.launch-version(id); }
+                        browse(id) => { root.browse-version(id); }
+                        rename(v) => { root.ask-text("rename", v.id, "Rename version", v.name, "Rename"); }
+                        archive(v) => {
+                            root.ask("archive", v.id, "Archive " + v.name + "?",
+                                "Packs the version into one file in the archive folder, checks it, then removes the original folder. You can restore it later from the Archived tab.",
+                                "Archive", false);
+                        }
+                        delete(v) => {
+                            root.ask("delete", v.id, "Delete " + v.name + "?",
+                                "This permanently deletes the version and all its files from disk. It cannot be undone.",
+                                "Delete", true);
+                        }
+                        restore(a) => { root.restore-archive(a.path); }
+                        delete-archive(a) => {
+                            root.ask("delete-archive", a.path, "Delete the archive " + a.name + "?",
+                                "This permanently deletes the archive file. It cannot be undone.",
+                                "Delete", true);
+                        }
+                        rescan => { root.rescan(); }
                     }
-                    if root.page == "download" : DownloadPage { width: parent.width; height: parent.height; }
+                    if root.page == "download" : DownloadPage {
+                        width: parent.width;
+                        height: parent.height;
+                        recommended: root.curated-recommended;
+                        other: root.curated-other;
+                        status: root.curated-status;
+                    }
                     if root.page == "servers" : ServersPage { width: parent.width; height: parent.height; }
                     if root.page == "settings" : SettingsPage {
                         width: parent.width;
                         height: parent.height;
                         data-dir: root.data-dir;
                         app-version: root.app-version;
+                        path-rows: root.path-rows;
+                        busy: root.task-active;
+                        add-path => { root.add-install-path(); }
+                        remove-path(p) => {
+                            root.ask("remove-path", p, "Stop watching this folder?",
+                                p + "\n\nYour files stay where they are. The versions found there are removed from the library until you add the folder again.",
+                                "Remove", false);
+                        }
+                        rescan => { root.rescan(); }
+                        archive-all => {
+                            root.ask("archive-all", "", "Archive every version?",
+                                "Each version is packed into a file in its archive folder, checked, then its folder is removed. This can take a long time and needs free disk space for the archives.",
+                                "Archive all", false);
+                        }
+                        delete-all => {
+                            root.ask("delete-all", "", "Delete every version?",
+                                "This permanently deletes ALL installed versions and their files from disk. Archives are kept. It cannot be undone.",
+                                "Delete all", true);
+                        }
                         test-toast => { root.show-toast("This is a notification.", "success"); }
-                        test-dialog => { root.dialog-open = true; }
+                        test-dialog => { root.ask("test", "", "Dialog test", "This is the shared confirmation dialog.", "OK", false); }
                     }
                 }
                 QuickLaunch {
                     height: Theme.footer-height;
                     has-version: root.has-last-played;
+                    can-switch: root.versions.length > 1;
                     version-name: root.last-played-name;
                     detail: root.last-played-detail;
                     eac: root.launch-with-eac;
-                    launch => { root.launch-clicked(); }
+                    launch => { root.launch-selected(); }
+                    switch-clicked => { root.menu-open = true; }
                     eac-toggled(on) => { root.launch-with-eac = on; root.eac-changed(on); }
                 }
             }
         }
     }
 
+    if root.menu-open : VersionMenu {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        versions: root.versions;
+        selected-id: root.selected-id;
+        picked(id) => { root.menu-open = false; root.pick-version(id); }
+        dismissed => { root.menu-open = false; }
+    }
+
+    if root.task-active : TaskBanner {
+        x: Theme.sidebar-width + 24px;
+        y: parent.height - Theme.footer-height - self.height - 16px;
+        width: parent.width - Theme.sidebar-width - 48px;
+        text: root.task-text;
+        progress: root.task-progress;
+        cancellable: root.task-cancellable;
+        cancel => { root.cancel-task(); }
+    }
+
     Toast {
         x: parent.width - self.width - 24px;
-        y: parent.height - Theme.footer-height - self.height - 16px;
+        y: parent.height - Theme.footer-height - self.height - 16px - (root.task-active ? 64px : 0px);
         text: root.toast-text;
         kind: root.toast-kind;
         shown: root.toast-shown;
@@ -162,10 +287,16 @@ export component App inherits Window {
         width: parent.width;
         height: parent.height;
         open: root.dialog-open;
-        title: "Dialog test";
-        body: "This is the shared confirmation dialog. Delete and archive will use it.";
-        confirm-text: "OK";
-        confirmed => { root.dialog-open = false; root.show-toast("Confirmed.", "success"); }
+        title: root.dialog-title;
+        body: root.dialog-body;
+        confirm-text: root.dialog-confirm;
+        danger: root.dialog-danger;
+        has-input: root.dialog-has-input;
+        input-text <=> root.dialog-input;
+        confirmed => {
+            root.dialog-open = false;
+            root.dialog-confirmed(root.dialog-kind, root.dialog-arg, root.dialog-input);
+        }
         cancelled => { root.dialog-open = false; }
     }
 

@@ -1,5 +1,4 @@
 import { Theme } from "theme.slint";
-import { VersionTile } from "types.slint";
 
 export component AppButton inherits Rectangle {
     in property <string> text;
@@ -128,26 +127,6 @@ export component Pill inherits Rectangle {
     }
 }
 
-export component VersionCard inherits Card {
-    in property <VersionTile> tile;
-    border-color: ta.has-hover ? Theme.accent : Theme.accent-border-strong;
-    animate border-color { duration: 120ms; }
-    VerticalLayout {
-        padding: 16px;
-        spacing: 4px;
-        Text { text: root.tile.name; color: Theme.text-primary; font-size: 16px; font-weight: 700; overflow: elide; }
-        Text { text: "Manifest " + root.tile.manifest; color: Theme.text-faint; font-size: 12px; overflow: elide; }
-        Text { text: root.tile.date == "" ? "Download date unknown" : "Downloaded " + root.tile.date; color: Theme.text-muted; font-size: 12px; }
-        Rectangle { vertical-stretch: 1; }
-        HorizontalLayout {
-            spacing: 8px;
-            Text { text: "Last played: " + root.tile.played; color: Theme.text-tertiary; font-size: 12px; vertical-alignment: center; horizontal-stretch: 1; }
-            if root.tile.eac : Pill { text: "EAC"; tint: Theme.success; }
-        }
-    }
-    ta := TouchArea { }
-}
-
 export component EmptyState inherits Card {
     in property <string> title;
     in property <string> body;
@@ -173,8 +152,10 @@ export component QuickLaunch inherits Rectangle {
     in property <string> detail;
     in property <bool> has-version;
     in-out property <bool> eac: true;
+    in property <bool> can-switch;
     callback launch();
     callback eac-toggled(bool);
+    callback switch-clicked();
 
     background: Theme.surface-overlay;
     border-width: 0px;
@@ -190,11 +171,32 @@ export component QuickLaunch inherits Rectangle {
         padding-top: 10px;
         padding-bottom: 10px;
         spacing: 20px;
-        VerticalLayout {
+        Rectangle {
             horizontal-stretch: 1;
-            alignment: center;
-            Text { text: root.has-version ? root.version-name : "No game version yet"; color: Theme.text-primary; font-size: 14px; font-weight: 600; overflow: elide; }
-            Text { text: root.detail; color: Theme.text-muted; font-size: 12px; overflow: elide; }
+            VerticalLayout {
+                alignment: center;
+                Text { text: root.has-version ? root.version-name : "No game version yet"; color: Theme.text-primary; font-size: 14px; font-weight: 600; overflow: elide; }
+                Text { text: root.detail; color: Theme.text-muted; font-size: 12px; overflow: elide; }
+            }
+            if root.can-switch : switch-area := TouchArea {
+                mouse-cursor: MouseCursor.pointer;
+                clicked => { root.switch-clicked(); }
+            }
+        }
+        if root.can-switch : Rectangle {
+            width: 30px;
+            Image {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 16px;
+                height: 16px;
+                source: @image-url("icons/caret-up.svg");
+                colorize: Theme.text-tertiary;
+            }
+            TouchArea {
+                mouse-cursor: MouseCursor.pointer;
+                clicked => { root.switch-clicked(); }
+            }
         }
         // EAC switch
         HorizontalLayout {
@@ -240,8 +242,8 @@ export component Toast inherits Rectangle {
     in property <string> kind; // "info" | "success" | "error"
     in property <bool> shown;
 
-    width: 360px;
-    height: 48px;
+    width: 380px;
+    height: Math.max(48px, label.preferred-height + 24px);
     visible: self.opacity > 0.01;
     opacity: root.shown ? 1.0 : 0.0;
     animate opacity { duration: 180ms; }
@@ -257,59 +259,17 @@ export component Toast inherits Rectangle {
         border-bottom-left-radius: Theme.radius-card;
         background: root.kind == "error" ? Theme.error : root.kind == "success" ? Theme.success : Theme.accent;
     }
-    Text {
+    label := Text {
         x: 20px;
+        y: (parent.height - self.height) / 2;
         width: parent.width - 32px;
         text: root.text;
         color: Theme.text-primary;
         font-size: 14px;
-        vertical-alignment: center;
-        overflow: elide;
+        wrap: word-wrap;
     }
 }
 
-export component Modal inherits Rectangle {
-    in property <bool> open;
-    in property <string> title;
-    in property <string> body;
-    in property <string> confirm-text: "Confirm";
-    callback confirmed();
-    callback cancelled();
-
-    visible: root.open;
-    // Backdrop: also swallows clicks so nothing underneath is reachable.
-    Rectangle {
-        background: #000000b3;
-        TouchArea { clicked => { root.cancelled(); } }
-    }
-    Rectangle {
-        x: (parent.width - self.width) / 2;
-        y: (parent.height - self.height) / 2;
-        width: 440px;
-        height: panel.preferred-height;
-        background: Theme.surface-2;
-        border-radius: Theme.radius-card;
-        border-width: 1px;
-        border-color: Theme.accent-border;
-        TouchArea { } // clicks on the panel must not reach the backdrop
-        panel := VerticalLayout {
-            padding: 24px;
-            spacing: 12px;
-            Text { text: root.title; color: Theme.text-primary; font-size: 18px; font-weight: 700; }
-            Text { text: root.body; color: Theme.text-secondary; font-size: 14px; wrap: word-wrap; }
-            HorizontalLayout {
-                padding-top: 8px;
-                spacing: 10px;
-                alignment: end;
-                AppButton { text: "Cancel"; primary: false; clicked => { root.cancelled(); } }
-                AppButton { text: root.confirm-text; clicked => { root.confirmed(); } }
-            }
-        }
-    }
-}
-
-// The window background: a diagonal gradient from the accent colour into the dark brown,
-// under a dark overlay so text stays readable. "Red" is the default; "blue" cross-fades in.
 export component Atmosphere inherits Rectangle {
     in property <bool> blue;
 

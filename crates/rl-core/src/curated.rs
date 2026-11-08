@@ -1,0 +1,153 @@
+//! Curated build lists (`versionRL.json`, `versionOther.json`).
+//!
+//! The files live in the GitHub repository and are fetched in the background. A cached copy is
+//! shown straight away, so the Download page never waits on the network. V1 and V2 read the same
+//! files from `main`, so their format must not change.
+
+use crate::error::{Error, Result};
+use crate::fsutil::write_atomic;
+use crate::paths::AppPaths;
+use serde::{Deserialize, Serialize};
+
+const BASE_URL: &str = "https://raw.githubusercontent.com/bap23rd/RustyLauncher/main/resources/";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CuratedKind {
+    /// "Recommended" builds (`versionRL.json`, key `recommended`).
+    Recommended,
+    /// Everything else (`versionOther.json`, key `other`).
+    Other,
+}
+
+impl CuratedKind {
+    pub fn file_name(self) -> &'static str {
+        match self {
+            CuratedKind::Recommended => "versionRL.json",
+            CuratedKind::Other => "versionOther.json",
+        }
+    }
+    pub fn url(self) -> String {
+        format!("{BASE_URL}{}", self.file_name())
+    }
+    fn key(self) -> &'static str {
+        match self {
+            CuratedKind::Recommended => "recommended",
+            CuratedKind::Other => "other",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CuratedBuild {
+    pub title: String,
+    pub client_manifest: String,
+    pub bundle_manifest: String,
+    /// Shown as written in the file (`dd-mm-yyyy`).
+    pub version_date: String,
+}
+
+/// Read the list out of the JSON text. Entries without a manifest id are skipped.
+pub fn parse(kind: CuratedKind, json: &str) -> Result<Vec<CuratedBuild>> {
+    let path = std::path::PathBuf::from(kind.file_name());
+    let value: serde_json::Value = serde_json::from_str(json).map_err(|e| Error::Json {
+        path: path.clone(),
+        source: e,
+    })?;
+    let list = value
+        .get(kind.key())
+        .cloned()
+        .unwrap_or(serde_json::Value::Array(vec![]));
+    let builds: Vec<CuratedBuild> =
+        serde_json::from_value(list).map_err(|e| Error::Json { path, source: e })?;
+    Ok(builds
+        .into_iter()
+        .filter(|b| !b.client_manifest.trim().is_empty())
+        .collect())
+}
+
+/// The cached list, or an empty one if there is no (usable) cache yet.
+pub fn load_cached(paths: &AppPaths, kind: CuratedKind) -> Vec<CuratedBuild> {
+    std::fs::read_to_string(paths.cache_dir().join(kind.file_name()))
+        .ok()
+        .and_then(|text| parse(kind, &text).ok())
+        .unwrap_or_default()
+}
+
+/// Validate freshly fetched JSON and, if it is good, store it as the new cache.
+pub fn store_fetched(paths: &AppPaths, kind: CuratedKind, json: &str) -> Result<Vec<CuratedBuild>> {
+    let builds = parse(kind, json)?;
+    write_atomic(&paths.cache_dir().join(kind.file_name()), json.as_bytes())?;
+    Ok(builds)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const RL: &str = r#"{ "recommended": [
+        { "title": "Rust Stable July 2023", "clientManifest": "2486676083669216181", "bundleManifest": "3732538865539399361", "versionDate": "09-07-2023" },
+        { "title": "No manifest", "clientManifest": "", "bundleManifest": "1", "versionDate": "" }
+    ] }"#;
+
+    #[test]
+    fn parses_the_real_file_format() {
+        let list = parse(CuratedKind::Recommended, RL).unwrap();
+        assert_eq!(list.len(), 1, "entries without a manifest are skipped");
+        assert_eq!(list[0].title, "Rust Stable July 2023");
+        assert_eq!(list[0].bundle_manifest, "3732538865539399361");
+    }
+
+    #[test]
+    fn the_other_file_uses_a_different_key() {
+        let json = r#"{ "other": [ { "title": "Old", "clientManifest": "5", "bundleManifest": "6", "versionDate": "27-01-2018" } ] }"#;
+        assert_eq!(parse(CuratedKind::Other, json).unwrap().len(), 1);
+        assert!(parse(CuratedKind::Recommended, json).unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_files_in_this_repository_parse() {
+        let rl = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../resources/versionRL.json"
+        ))
+        .unwrap();
+        let other = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../resources/versionOther.json"
+        ))
+        .unwrap();
+        assert!(!parse(CuratedKind::Recommended, &rl).unwrap().is_empty());
+        assert!(!parse(CuratedKind::Other, &other).unwrap().is_empty());
+    }
+
+    #[test]
+    fn cache_round_trip_and_bad_data_is_not_cached() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = AppPaths::at(dir.path());
+        assert!(load_cached(&paths, CuratedKind::Recommended).is_empty());
+        store_fetched(&paths, CuratedKind::Recommended, RL).unwrap();
+        assert_eq!(load_cached(&paths, CuratedKind::Recommended).len(), 1);
+        assert!(
+            store_fetched(
+                &paths,
+                CuratedKind::Recommended,
+                "<html>rate limited</html>"
+            )
+            .is_err()
+        );
+        assert_eq!(
+            load_cached(&paths, CuratedKind::Recommended).len(),
+            1,
+            "a bad download must not replace a good cache"
+        );
+    }
+
+    #[test]
+    fn url_points_at_main() {
+        assert_eq!(
+            CuratedKind::Recommended.url(),
+            "https://raw.githubusercontent.com/bap23rd/RustyLauncher/main/resources/versionRL.json"
+        );
+    }
+}

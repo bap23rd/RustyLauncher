@@ -1,16 +1,20 @@
 // A release build is a GUI program: no console window.
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
+mod actions;
+mod ctx;
 mod format;
 mod single_instance;
+mod tasks;
 
 slint::include_modules!();
 
-use rl_core::model::{State, Version};
+use ctx::Ctx;
+use rl_core::curated::{CuratedKind, load_cached};
 use rl_core::paths::AppPaths;
 use rl_core::state;
-use slint::{ModelRc, VecModel};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -40,7 +44,7 @@ fn main() {
     let outcome = state::load(&paths).unwrap_or_else(|err| {
         tracing::error!(%err, "could not load state; using defaults");
         state::LoadOutcome {
-            state: State::default(),
+            state: Default::default(),
             recovered_from: None,
             first_run: true,
         }
@@ -49,52 +53,45 @@ fn main() {
         tracing::warn!(moved = %moved.display(), "state.json was damaged and has been set aside");
         "Your settings file was damaged. It was set aside and a fresh one started.".to_string()
     });
-    let state = Rc::new(RefCell::new(outcome.state));
 
     let app = App::new().expect("could not create the window");
     app.set_app_version(env!("CARGO_PKG_VERSION").into());
     app.set_data_dir(paths.root().display().to_string().into());
-    refresh(&app, &state.borrow());
+
+    let cached = (
+        load_cached(&paths, CuratedKind::Recommended),
+        load_cached(&paths, CuratedKind::Other),
+    );
+    let ctx = Rc::new(Ctx {
+        paths: paths.clone(),
+        state: RefCell::new(outcome.state),
+        app: app.as_weak(),
+        cancel: RefCell::new(None),
+        archives: RefCell::new(Vec::new()),
+        usage: RefCell::new(HashMap::new()),
+        curated: RefCell::new(cached),
+    });
+    ctx::install(ctx.clone());
+    ctx.refresh();
+    ctx.refresh_curated("");
     if let Ok(page) = std::env::var("RL_START_PAGE") {
         app.set_page(page.into());
     }
 
-    {
-        let weak = app.as_weak();
-        app.on_launch_clicked(move || {
-            if let Some(app) = weak.upgrade() {
-                app.invoke_show_toast("Launching games arrives in Phase 3.".into(), "info".into());
-            }
-        });
-    }
-    {
-        let state = state.clone();
-        let paths = paths.clone();
-        let weak = app.as_weak();
-        app.on_eac_changed(move |on| {
-            state.borrow_mut().settings.launch_with_eac = on;
-            if let Err(err) = state::save(&paths, &state.borrow()) {
-                tracing::error!(%err, "could not save settings");
-                if let Some(app) = weak.upgrade() {
-                    app.invoke_show_toast("Could not save your settings.".into(), "error".into());
-                }
-            }
-        });
-    }
+    wire_callbacks(&app);
 
     if let Some(notice) = startup_notice {
         app.invoke_show_toast(notice.into(), "error".into());
     }
 
-    // The window has no standard title bar, so the close button is ours: hiding the only window ends the event loop.
-    {
-        let weak = app.as_weak();
-        app.on_close_clicked(move || {
-            if let Some(app) = weak.upgrade() {
-                let _ = app.hide();
-            }
-        });
-    }
+    // Work that must not delay the first frame runs once the event loop is up.
+    slint::Timer::single_shot(Duration::from_millis(100), || {
+        let ctx = ctx::get();
+        actions::scan_in_background(true);
+        actions::reload_archives(&ctx);
+        actions::refresh_usage(&ctx);
+        actions::load_curated(&ctx);
+    });
 
     // `RL_STARTUP_PROBE=1` prints the time of the first event-loop turn and exits (used to check the startup budget).
     if std::env::var_os("RL_STARTUP_PROBE").is_some() {
@@ -119,62 +116,22 @@ fn main() {
     tracing::info!("RustyLauncher exited");
 }
 
-/// Push state into the UI.
-fn refresh(app: &App, state: &State) {
-    let tiles: Vec<VersionTile> = state.versions.iter().map(tile).collect();
-    app.set_versions(ModelRc::from(Rc::new(VecModel::from(tiles))));
-    app.set_server_count(state.servers.len() as i32);
-    app.set_launch_with_eac(state.settings.launch_with_eac);
-
-    let last = state
-        .settings
-        .last_played_version
-        .as_deref()
-        .and_then(|id| state.version_by_id(id))
-        .or_else(|| {
-            state
-                .versions
-                .iter()
-                .filter(|v| v.last_played.is_some())
-                .max_by_key(|v| v.last_played)
-        });
-    match last {
-        Some(v) => {
-            app.set_has_last_played(true);
-            app.set_last_played_name(v.name.as_str().into());
-            app.set_last_played_detail(played_text(v).into());
+fn wire_callbacks(app: &App) {
+    app.on_launch_version(|id| actions::launch_version(&id));
+    app.on_launch_selected(actions::launch_selected);
+    app.on_pick_version(|id| actions::pick_version(&id));
+    app.on_eac_changed(actions::eac_changed);
+    app.on_browse_version(|id| actions::browse(&id));
+    app.on_restore_archive(|path| actions::restore_archive(&path));
+    app.on_rescan(actions::rescan);
+    app.on_add_install_path(actions::add_install_path);
+    app.on_cancel_task(actions::cancel_task);
+    app.on_dialog_confirmed(|kind, arg, text| actions::dialog_confirmed(&kind, &arg, &text));
+    // The window has no standard title bar, so the close button is ours: hiding the only window ends the event loop.
+    let weak = app.as_weak();
+    app.on_close_clicked(move || {
+        if let Some(app) = weak.upgrade() {
+            let _ = app.hide();
         }
-        None => {
-            app.set_has_last_played(false);
-            app.set_last_played_name("".into());
-            app.set_last_played_detail("Download a version to get started".into());
-        }
-    }
-}
-
-fn played_text(v: &Version) -> String {
-    match v.last_played {
-        Some(t) => format!("Played {}", format::ymd(t)),
-        None => "Never played".to_string(),
-    }
-}
-
-fn tile(v: &Version) -> VersionTile {
-    VersionTile {
-        id: v.id.as_str().into(),
-        name: v.name.as_str().into(),
-        manifest: v.manifest_id.as_str().into(),
-        date: v
-            .download_date
-            .as_deref()
-            .map(format::iso_date)
-            .unwrap_or_default()
-            .into(),
-        played: v
-            .last_played
-            .map(format::ymd)
-            .unwrap_or_else(|| "Never".to_string())
-            .into(),
-        eac: v.eac_enabled,
-    }
+    });
 }

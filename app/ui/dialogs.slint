@@ -1,0 +1,92 @@
+import { Theme } from "theme.slint";
+import { AppButton } from "components.slint";
+import { TextField } from "library_components.slint";
+
+// One dialog used for confirmations and for asking for a short piece of text (rename).
+// Enter confirms, Escape cancels.
+export component Modal inherits Rectangle {
+    in property <bool> open;
+    in property <string> title;
+    in property <string> body;
+    in property <string> confirm-text: "Confirm";
+    // Red confirm button for things that cannot be undone.
+    in property <bool> danger;
+    // Show a text box (used for rename). The text is read back through `input-text`.
+    in property <bool> has-input;
+    in-out property <string> input-text;
+    in property <string> input-placeholder;
+    callback confirmed();
+    callback cancelled();
+
+    visible: root.open;
+    changed open => {
+        // Take keyboard focus so Enter and Escape work (the text box takes it itself).
+        if (root.open && !root.has-input) {
+            keys.focus();
+        }
+    }
+
+    // Backdrop: also swallows clicks so nothing underneath is reachable.
+    Rectangle {
+        background: #000000b3;
+        TouchArea { clicked => { root.cancelled(); } }
+    }
+    keys := FocusScope {
+        capture-key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.cancelled();
+                return accept;
+            }
+            reject
+        }
+        key-pressed(event) => {
+            if (event.text == Key.Return && !root.has-input) {
+                root.confirmed();
+                return accept;
+            }
+            reject
+        }
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 460px;
+            height: panel.preferred-height;
+            background: Theme.surface-2;
+            border-radius: Theme.radius-card;
+            border-width: 1px;
+            border-color: root.danger ? Theme.error.with-alpha(0.6) : Theme.accent-border;
+            TouchArea { } // clicks on the panel must not reach the backdrop
+            panel := VerticalLayout {
+                padding: 24px;
+                spacing: 14px;
+                Text { text: root.title; color: Theme.text-primary; font-size: 18px; font-weight: 700; wrap: word-wrap; }
+                if root.body != "" : Text { text: root.body; color: Theme.text-secondary; font-size: 14px; wrap: word-wrap; }
+                if root.has-input : TextField {
+                    text <=> root.input-text;
+                    placeholder: root.input-placeholder;
+                    accepted => { root.confirmed(); }
+                    init => { self.focus-input(); }
+                }
+                HorizontalLayout {
+                    padding-top: 8px;
+                    spacing: 10px;
+                    alignment: end;
+                    AppButton { text: "Cancel"; primary: false; clicked => { root.cancelled(); } }
+                    Rectangle {
+                        min-width: 96px;
+                        Rectangle {
+                            border-radius: Theme.radius-button;
+                            background: root.danger ? (confirm.has-hover ? #e53935 : Theme.error) : (confirm.has-hover ? Theme.accent-hover : Theme.accent);
+                            animate background { duration: 120ms; }
+                            Text { text: root.confirm-text; color: white; font-size: 14px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+                            confirm := TouchArea {
+                                mouse-cursor: MouseCursor.pointer;
+                                clicked => { root.confirmed(); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

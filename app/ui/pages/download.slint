@@ -1,18 +1,43 @@
 import { Theme } from "../theme.slint";
+import { CuratedTile } from "../types.slint";
 import { PageHeader, EmptyState } from "../components.slint";
+import { CuratedRow } from "../library_components.slint";
+
+component SectionTitle inherits Text {
+    color: Theme.text-muted;
+    font-size: 12px;
+    font-weight: 600;
+}
 
 export component DownloadPage inherits Rectangle {
-    VerticalLayout {
-        padding: Theme.page-padding;
-        spacing: 20px;
-        PageHeader {
-            title: "Download";
-            subtitle: "Get an older Rust build from Steam.";
-        }
-        EmptyState {
-            vertical-stretch: 1;
-            title: "Downloads are coming";
-            body: "Curated builds and manual manifest IDs arrive with the in-process Steam downloader (Phase 4).";
+    in property <[CuratedTile]> recommended;
+    in property <[CuratedTile]> other;
+    in property <string> status;
+
+    Flickable {
+        content-height: content.preferred-height;
+        content := VerticalLayout {
+            padding: Theme.page-padding;
+            spacing: 12px;
+            PageHeader {
+                title: "Download";
+                subtitle: "Get an older Rust build from Steam. " + root.status;
+            }
+            Rectangle { height: 8px; }
+            SectionTitle { text: "RECOMMENDED BUILDS"; }
+            if root.recommended.length == 0 : Text { text: "Nothing to show yet."; color: Theme.text-tertiary; font-size: 13px; }
+            for b in root.recommended : CuratedRow { build: b; }
+            Rectangle { height: 8px; }
+            SectionTitle { text: "OTHER BUILDS"; }
+            if root.other.length == 0 : Text { text: "Nothing to show yet."; color: Theme.text-tertiary; font-size: 13px; }
+            for b in root.other : CuratedRow { build: b; }
+            Rectangle { height: 8px; }
+            Text {
+                text: "Downloading arrives with the in-process Steam downloader (Phase 4). You will be able to pick a build above, or enter your own manifest IDs.";
+                color: Theme.text-faint;
+                font-size: 12px;
+                wrap: word-wrap;
+            }
         }
     }
 }
