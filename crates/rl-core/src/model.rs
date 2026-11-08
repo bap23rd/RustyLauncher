@@ -194,7 +194,7 @@ impl State {
             });
         }
         self.install_paths
-            .sort_by(|a, b| b.last_used.cmp(&a.last_used));
+            .sort_by_key(|p| std::cmp::Reverse(p.last_used));
     }
 }
 
