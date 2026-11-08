@@ -1,0 +1,27 @@
+.atmosphere-background {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.atmosphere-layer {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    animation: atmosphere-fade 24s ease-in-out infinite;
+}
+
+.atmosphere-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(20, 14, 14, 0.75);
+}
+
+@keyframes atmosphere-fade {
+    0%, 100% { opacity: 0; }
+    10%, 35% { opacity: 0.35; }
+    45% { opacity: 0; }
+}

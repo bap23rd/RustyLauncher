@@ -4,7 +4,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
     getVersions: () => ipcRenderer.invoke('get-versions'),
     getLastPlayedVersion: () => ipcRenderer.invoke('get-last-played-version'),
-    getRustNews: () => ipcRenderer.invoke('get-rust-news'),
     startDownload: (config: any) => ipcRenderer.invoke('start-download', config),
     cancelDownload: () => ipcRenderer.invoke('cancel-download'),
     onDownloadProgress: (callback: (progress: any) => void) => {
@@ -49,5 +48,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const listener = (_event: any, data: any) => callback(data);
         ipcRenderer.on('unarchive-progress', listener);
         return () => ipcRenderer.removeListener('unarchive-progress', listener);
+    },
+    // Servers
+    getServers: () => ipcRenderer.invoke('get-servers'),
+    startServerDownloadManifest: (config: any) => ipcRenderer.invoke('start-server-download-manifest', config),
+    startServerDownloadLatest: (config: any) => ipcRenderer.invoke('start-server-download-latest', config),
+    cancelServerDownload: () => ipcRenderer.invoke('cancel-server-download'),
+    renameServer: (serverId: number, newName: string) => ipcRenderer.invoke('rename-server', serverId, newName),
+    deleteServer: (serverId: number) => ipcRenderer.invoke('delete-server', serverId),
+    browseServerFiles: (installPath: string) => ipcRenderer.invoke('browse-server-files', installPath),
+    getServerConfig: (serverId: number) => ipcRenderer.invoke('get-server-config', serverId),
+    saveServerConfig: (serverId: number, config: any) => ipcRenderer.invoke('save-server-config', serverId, config),
+    openServerModsFolder: (serverId: number) => ipcRenderer.invoke('open-server-mods-folder', serverId),
+    onServerDownloadProgress: (callback: (progress: any) => void) => {
+        const listener = (_event: any, progress: any) => callback(progress);
+        ipcRenderer.on('server-download-progress', listener);
+        return () => ipcRenderer.removeListener('server-download-progress', listener);
+    },
+    onServerDownloadComplete: (callback: (result: any) => void) => {
+        const listener = (_event: any, result: any) => callback(result);
+        ipcRenderer.on('server-download-complete', listener);
+        return () => ipcRenderer.removeListener('server-download-complete', listener);
     },
 });

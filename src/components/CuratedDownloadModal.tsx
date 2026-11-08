@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Warning } from '@phosphor-icons/react';
 import type { CuratedVersion } from '../types/curatedVersions';
 import './CuratedDownloadModal.css';
 
@@ -193,7 +194,7 @@ export function CuratedDownloadModal({ version, onClose }: CuratedDownloadModalP
                                 </div>
                             </div>
                             <div className="steam-guard-notice">
-                                <p>⚠️ <strong>Important:</strong> You may be prompted by STEAM GUARD <b>once</b> at the start, and <b>again</b> a minute later.</p>
+                                <p><Warning size={16} weight="bold" /> <strong>Important:</strong> You may be prompted by STEAM GUARD <b>once</b> at the start, and <b>again</b> a minute later.</p>
                                 <p>Downloads can take 10-30 minutes (or even longer) depending on your connection speed.</p>
                             </div>
                             <div className="modal-actions">

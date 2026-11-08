@@ -25,6 +25,7 @@
     "package": "npm run build && npm run pack"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "archiver": "^7.0.1",
     "archiver-utils": "^5.0.2",
     "axios": "^1.13.2",
@@ -32,7 +33,6 @@
     "extract-zip": "^2.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "rss-parser": "^3.13.0",
     "zip-stream": "^6.0.1"
   },
   "devDependencies": {

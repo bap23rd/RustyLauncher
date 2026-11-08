@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { FolderPlus, GearSix, Trash, PencilSimple, FolderOpen, Archive, Check, X } from '@phosphor-icons/react';
 import type { OperationStatus } from '../App';
 import { useNotification } from '../context/NotificationContext';
 import './VersionLibrary.css';
@@ -163,7 +164,7 @@ export function VersionLibrary({ onRefresh, activeOperations = [], onOpenInstall
                 <h2>Version Library</h2>
                 {onOpenInstallPaths && (
                     <button className="btn-add-location" onClick={onOpenInstallPaths}>
-                        📁 Add Install Location
+                        <FolderPlus size={18} weight="bold" /> Add Install Location
                     </button>
                 )}
             </div>
@@ -249,8 +250,8 @@ export function VersionLibrary({ onRefresh, activeOperations = [], onOpenInstall
                                             autoFocus
                                             className="rename-input"
                                         />
-                                        <button className="btn-rename-confirm" onClick={() => submitRename(version)}>✓</button>
-                                        <button className="btn-rename-cancel" onClick={cancelRename}>✕</button>
+                                        <button className="btn-rename-confirm" onClick={() => submitRename(version)}><Check size={16} weight="bold" /></button>
+                                        <button className="btn-rename-cancel" onClick={cancelRename}><X size={16} weight="bold" /></button>
                                     </div>
                                 ) : (
                                     <h3>{version.name || `A Rust Version: ${version.id}`}</h3>
@@ -261,7 +262,7 @@ export function VersionLibrary({ onRefresh, activeOperations = [], onOpenInstall
                                         onClick={() => setOpenMenuId(openMenuId === version.id ? null : version.id)}
                                         title="Extra Settings"
                                     >
-                                        ⚙️
+                                        <GearSix size={18} weight="bold" />
                                     </button>
                                     <button
                                         className="icon-btn bin-btn"
@@ -269,16 +270,16 @@ export function VersionLibrary({ onRefresh, activeOperations = [], onOpenInstall
                                         disabled={launching === version.id}
                                         title="Delete Version"
                                     >
-                                        🗑️
+                                        <Trash size={18} weight="bold" />
                                     </button>
                                 </div>
                             </div>
 
                             {openMenuId === version.id && (
                                 <div className="extra-settings-menu" ref={menuRef}>
-                                    <button onClick={() => handleRename(version)}>✏️ Change Name</button>
-                                    <button onClick={() => handleBrowseFiles(version)}>📁 Browse Local Files</button>
-                                    <button onClick={() => handleArchive(version)}>📦 Archive Version</button>
+                                    <button onClick={() => handleRename(version)}><PencilSimple size={16} weight="bold" /> Change Name</button>
+                                    <button onClick={() => handleBrowseFiles(version)}><FolderOpen size={16} weight="bold" /> Browse Local Files</button>
+                                    <button onClick={() => handleArchive(version)}><Archive size={16} weight="bold" /> Archive Version</button>
                                 </div>
                             )}
 

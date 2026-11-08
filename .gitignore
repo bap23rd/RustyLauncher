@@ -23,6 +23,9 @@ dist-electron/
 *.db-wal
 *.db-shm
 
+# Dev planning/notes (not for distribution)
+DevFiles/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

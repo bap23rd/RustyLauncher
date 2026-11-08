@@ -1,0 +1,60 @@
+.server-config-intro {
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.server-config-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.server-config-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 220px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.server-config-row input[type="text"],
+.server-config-row input[type="password"] {
+    flex: 1;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-input);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.server-config-row input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.server-config-mods {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-input);
+    padding: 1rem;
+    margin: 1.5rem 0;
+}
+
+.server-config-mods p {
+    margin: 0.25rem 0 0;
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+}
+
+.server-config-mods a {
+    color: var(--accent);
+}

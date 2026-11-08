@@ -131,7 +131,6 @@ interface Window {
         getAppVersion: () => Promise<string>;
         getVersions: () => Promise<RustVersion[]>;
         getLastPlayedVersion: () => Promise<RustVersion | null>;
-        getRustNews: () => Promise<any[]>;
         startDownload: (config: DownloadConfig) => Promise<void>;
         cancelDownload: () => Promise<void>;
         onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;
@@ -161,6 +160,19 @@ interface Window {
         scanInstallPaths: () => Promise<ScanResult>;
         onArchiveProgress: (callback: (data: { id: number; progress: number; status: string }) => void) => () => void;
         onUnarchiveProgress: (callback: (data: { name: string; progress: number; log: string }) => void) => () => void;
+        // Servers
+        getServers: () => Promise<RustServer[]>;
+        startServerDownloadManifest: (config: ServerDownloadManifestConfig) => Promise<void>;
+        startServerDownloadLatest: (config: ServerDownloadLatestConfig) => Promise<void>;
+        cancelServerDownload: () => Promise<void>;
+        renameServer: (serverId: number, newName: string) => Promise<ServerActionResult>;
+        deleteServer: (serverId: number) => Promise<ServerActionResult>;
+        browseServerFiles: (installPath: string) => Promise<ServerActionResult>;
+        getServerConfig: (serverId: number) => Promise<ServerConfigResponse | null>;
+        saveServerConfig: (serverId: number, config: ServerLaunchConfig) => Promise<ServerActionResult>;
+        openServerModsFolder: (serverId: number) => Promise<ServerActionResult>;
+        onServerDownloadProgress: (callback: (progress: DownloadProgress & { name: string }) => void) => () => void;
+        onServerDownloadComplete: (callback: (result: DownloadComplete & { name: string }) => void) => () => void;
     };
 }
 
@@ -168,4 +180,60 @@ interface ScanResult {
     scanned: number;
     discovered: number;
     repaired: number;
+}
+
+interface RustServer {
+    id: number;
+    name: string | null;
+    installType: 'manifest' | 'latest';
+    appId: string;
+    depotId: string | null;
+    manifestId: string | null;
+    installPath: string;
+    createdAt: string;
+}
+
+interface ServerDownloadManifestConfig {
+    name?: string;
+    appId?: string;
+    depotId: string;
+    manifestId: string;
+    installPath?: string;
+    username?: string;
+    password?: string;
+}
+
+interface ServerDownloadLatestConfig {
+    name?: string;
+    appId?: string;
+    installPath?: string;
+}
+
+interface ServerActionResult {
+    success: boolean;
+    error?: string;
+}
+
+interface ServerLaunchArg {
+    enabled: boolean;
+    value?: string;
+}
+
+interface ServerLaunchConfig {
+    hostname: ServerLaunchArg;
+    identity: ServerLaunchArg;
+    port: ServerLaunchArg;
+    rconPort: ServerLaunchArg;
+    rconPassword: ServerLaunchArg;
+    rconWeb: { enabled: boolean };
+    maxPlayers: ServerLaunchArg;
+    worldSize: ServerLaunchArg;
+    seed: ServerLaunchArg;
+    saveInterval: ServerLaunchArg;
+    customArgs: string;
+}
+
+interface ServerConfigResponse {
+    config: ServerLaunchConfig;
+    hasOxide: boolean;
 }

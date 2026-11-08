@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { List, BookOpen, GearSix, DownloadSimple } from '@phosphor-icons/react';
 import type { OperationStatus } from '../App';
 import { useNotification } from '../context/NotificationContext';
 import './StickyFooter.css';
@@ -108,7 +109,7 @@ export function StickyFooter({ onNavigate, onOpenSettings, onOpenDownload, activ
 
             <div className="footer-right" ref={menuRef}>
                 <button className="hamburger-btn" onClick={() => setShowMenu(!showMenu)} disabled={isArchiving}>
-                    ☰
+                    <List size={22} weight="bold" />
                 </button>
 
                 {showMenu && (
@@ -120,14 +121,14 @@ export function StickyFooter({ onNavigate, onOpenSettings, onOpenDownload, activ
                             {getAlternateLaunchLabel()}
                         </button>
                         <button onClick={() => { setShowMenu(false); onNavigate('library'); }}>
-                            📚 Switch Version
+                            <BookOpen size={18} weight="bold" /> Switch Version
                         </button>
                         <div className="menu-divider"></div>
                         <button onClick={() => { setShowMenu(false); onOpenSettings(); }}>
-                            ⚙️ Settings
+                            <GearSix size={18} weight="bold" /> Settings
                         </button>
                         <button onClick={() => { setShowMenu(false); onOpenDownload(); }}>
-                            ⬇️ Download Version
+                            <DownloadSimple size={18} weight="bold" /> Download Version
                         </button>
                     </div>
                 )}

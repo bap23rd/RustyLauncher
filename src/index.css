@@ -3,6 +3,39 @@
   --secondary-color: #CE422B;
   --text-color: #ffffff;
 
+  /* Surfaces */
+  --surface-1: #1a1a1a;
+  --surface-2: #1e1e1e;
+  --surface-card: rgba(0, 0, 0, 0.3);
+  --surface-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Accent (Rust orange-red) */
+  --accent: var(--secondary-color);
+  --accent-border: rgba(206, 66, 43, 0.3);
+  --accent-border-strong: rgba(206, 66, 43, 0.2);
+
+  /* Text hierarchy */
+  --text-primary: #ffffff;
+  --text-secondary: #dddddd;
+  --text-tertiary: #aaaaaa;
+  --text-muted: #999999;
+  --text-faint: #888888;
+  --text-disabled: #777777;
+
+  /* Status */
+  --status-success: #4caf50;
+  --status-success-alt: #738d45;
+  --status-error: #d32f2f;
+  --status-error-alt: #ff3333;
+  --status-warning: #ff9800;
+  --status-info: #4394ce;
+
+  /* Radii */
+  --radius-card: 12px;
+  --radius-input: 6px;
+  --radius-button: 1px;
+  --radius-pill: 12px;
+
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -38,14 +71,14 @@ h1 {
 }
 
 button {
-  border-radius: 1px;
+  border-radius: var(--radius-button);
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: var(--secondary-color);
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-primary);
   cursor: pointer;
   transition: border-color 0.25s;
 }

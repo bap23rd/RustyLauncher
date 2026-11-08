@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { LinkSimple, Trash, Archive, FolderPlus } from '@phosphor-icons/react';
 import { useNotification } from '../context/NotificationContext';
 import './SettingsModal.css';
 
@@ -87,7 +88,7 @@ export function SettingsModal({ onClose, initialSection = 'general' }: SettingsM
     };
 
     const handlePurgeAll = async () => {
-        if (!confirm('⚠️ DANGER: Purge ALL versions?\n\nThis will permanently delete ALL downloaded versions from your disk.\n\nThis action CANNOT be undone!')) return;
+        if (!confirm('DANGER: Purge ALL versions?\n\nThis will permanently delete ALL downloaded versions from your disk.\n\nThis action CANNOT be undone!')) return;
 
         const result = await window.electronAPI.purgeAllVersions();
         if (result.success) {
@@ -206,7 +207,7 @@ export function SettingsModal({ onClose, initialSection = 'general' }: SettingsM
                                             rel="noreferrer"
                                             className="link-button"
                                         >
-                                            🔗 RustyLauncher GitHub
+                                            <LinkSimple size={16} weight="bold" /> RustyLauncher GitHub
                                         </a>
                                         <a
                                             href="#"
@@ -221,7 +222,7 @@ export function SettingsModal({ onClose, initialSection = 'general' }: SettingsM
                                                 }
                                             }}
                                         >
-                                            🔗 Support and Documentation
+                                            <LinkSimple size={16} weight="bold" /> Support and Documentation
                                         </a>
                                     </div>
                                 </div>
@@ -233,10 +234,10 @@ export function SettingsModal({ onClose, initialSection = 'general' }: SettingsM
                                     </p>
                                     <div className="danger-actions">
                                         <button className="btn-danger" onClick={handlePurgeAll}>
-                                            🗑️ Purge All Versions
+                                            <Trash size={16} weight="bold" /> Purge All Versions
                                         </button>
                                         <button className="btn-warning" onClick={handleArchiveAll}>
-                                            📦 Archive All Versions
+                                            <Archive size={16} weight="bold" /> Archive All Versions
                                         </button>
                                     </div>
                                 </div>
@@ -331,7 +332,7 @@ export function SettingsModal({ onClose, initialSection = 'general' }: SettingsM
 
                                 <div className="settings-actions">
                                     <button className="btn-primary" onClick={handleAddInstallPath}>
-                                        📁 Add Install Location
+                                        <FolderPlus size={16} weight="bold" /> Add Install Location
                                     </button>
                                 </div>
                             </div>

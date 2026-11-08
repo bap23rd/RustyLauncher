@@ -1,0 +1,167 @@
+.server-library-empty {
+    text-align: center;
+    padding: 3rem;
+    background-color: var(--surface-card);
+    border-radius: var(--radius-card);
+    color: var(--text-tertiary);
+}
+
+.server-library-empty p {
+    margin: 0.5rem 0;
+}
+
+.server-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(350px, 100%), 1fr));
+    gap: 1.5rem;
+}
+
+.server-card {
+    background-color: var(--surface-card);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    transition: border-color 0.2s;
+}
+
+.server-card:hover {
+    border-color: var(--accent);
+}
+
+.server-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.server-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    word-break: break-word;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: transform 0.2s;
+}
+
+.icon-btn:hover {
+    transform: scale(1.2);
+}
+
+.bin-btn {
+    color: var(--status-error);
+}
+
+.rename-input-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex: 1;
+}
+
+.rename-input {
+    flex: 1;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-input);
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.btn-rename-confirm,
+.btn-rename-cancel {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: var(--radius-button);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-rename-confirm {
+    background-color: var(--status-success);
+    color: white;
+}
+
+.btn-rename-cancel {
+    background-color: var(--status-error);
+    color: white;
+}
+
+.server-details {
+    margin-bottom: 1.5rem;
+}
+
+.server-details p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.server-path {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+
+.install-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.install-type-badge.latest {
+    background-color: rgba(67, 148, 206, 0.2);
+    color: var(--status-info);
+}
+
+.install-type-badge.manifest {
+    background-color: var(--accent-border-strong);
+    color: var(--accent);
+}
+
+.server-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-secondary-action {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-button);
+    border: 1px solid var(--accent-border);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.btn-secondary-action:hover {
+    background-color: var(--accent-border-strong);
+}

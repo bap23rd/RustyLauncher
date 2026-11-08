@@ -144,6 +144,38 @@ export class DepotDownloaderService {
         );
     }
 
+    /**
+     * Single-depot, manifest-pinned download with no merge step - used for server installs
+     * where (unlike the game client) there's no separate "bundles" depot to combine in.
+     */
+    startSingleDepotDownload(
+        config: { appId: string; depotId: string; manifestId: string; installPath: string; username?: string; password?: string },
+        onData: (data: string) => void,
+        onError: (error: string) => void,
+        onComplete: (code: number | null) => void
+    ): void {
+        this.currentClientDir = config.installPath;
+
+        if (!fs.existsSync(config.installPath)) {
+            fs.mkdirSync(config.installPath, { recursive: true });
+        }
+
+        this.downloadDepot(
+            config.appId,
+            config.depotId,
+            config.manifestId,
+            config.installPath,
+            config.username,
+            config.password,
+            onData,
+            onError,
+            (code) => {
+                this.currentClientDir = null;
+                onComplete(code);
+            }
+        );
+    }
+
     private downloadDepot(
         appId: string,
         depotId: string,

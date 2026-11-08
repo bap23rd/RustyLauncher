@@ -74,6 +74,9 @@
     font-size: 2rem;
     margin-bottom: 1.5rem;
     text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
 }
 
 .section-divider {
@@ -121,6 +124,9 @@
 }
 
 .curated-card .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.6rem 1.5rem;
     background-color: #738d45;
     color: white;

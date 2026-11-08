@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Archive } from '@phosphor-icons/react';
 import { useNotification } from '../context/NotificationContext';
 import './UnarchiveModal.css';
 
@@ -63,7 +64,7 @@ export function UnarchiveModal({ onClose, onStartUnarchive }: UnarchiveModalProp
         <div className="modal-overlay" onClick={onClose}>
             <div className="unarchive-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>📦 Archived Versions</h2>
+                    <h2><Archive size={22} weight="bold" /> Archived Versions</h2>
                     <button className="close-btn" onClick={onClose}>×</button>
                 </div>
 

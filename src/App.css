@@ -1,5 +1,11 @@
-.app-container {
+.app-shell {
+  display: flex;
   min-height: 100vh;
+}
+
+.app-container {
+  position: relative;
+  flex: 1;
   display: flex;
   flex-direction: column;
   padding-bottom: 80px;
@@ -9,6 +15,8 @@
 }
 
 .content-wrapper {
+  position: relative;
+  z-index: 1;
   flex: 1;
   max-width: 1200px;
   margin: 0 auto;
@@ -17,93 +25,40 @@
   box-sizing: border-box;
 }
 
-.header {
-  text-align: center;
-  margin-bottom: 3rem;
-  position: relative;
-  padding: 0 3rem;
-  /* Space for settings icon */
-}
-
-.settings-icon {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  transition: transform 0.2s;
-  z-index: 100;
-}
-
-.settings-icon:hover {
-  transform: rotate(45deg);
-}
-
-.header h1 {
-  color: var(--secondary-color);
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-}
-
-.header p {
-  color: #ddd;
-  font-size: 1.2rem;
-}
-
-.header-buttons {
+.page-header {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
 }
 
-.download-btn,
-.library-btn,
-.back-btn {
+.page-header h2 {
+  color: var(--secondary-color);
+  margin: 0;
+}
+
+.download-btn {
   padding: 0.75rem 2rem;
   background-color: var(--secondary-color);
   color: white;
   border: none;
-  border-radius: 1px;
+  border-radius: var(--radius-button);
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.download-btn:hover,
-.library-btn:hover,
-.back-btn:hover {
+.download-btn:hover {
   background-color: #b33722;
-}
-
-.library-btn {
-  background-color: rgba(206, 66, 43, 0.3);
-  border: 1px solid var(--secondary-color);
-}
-
-.library-btn:hover {
-  background-color: rgba(206, 66, 43, 0.5);
-}
-
-.back-btn {
-  background-color: rgba(206, 66, 43, 0.3);
-  border: 1px solid var(--secondary-color);
-}
-
-.back-btn:hover {
-  background-color: rgba(206, 66, 43, 0.5);
 }
 
 .unarchive-btn {
   padding: 0.75rem 2rem;
   background-color: rgba(255, 152, 0, 0.3);
   color: white;
-  border: 1px solid #ff9800;
-  border-radius: 1px;
+  border: 1px solid var(--status-warning);
+  border-radius: var(--radius-button);
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -120,90 +75,48 @@
   gap: 3rem;
 }
 
-
-
-.prompt-arrow {
-  font-size: 1.2rem;
-}
-
-.news-section h2 {
-  color: var(--secondary-color);
-  margin-bottom: 1.5rem;
-}
-
-.news-list {
+.dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 1.5rem;
 }
 
-.news-card {
-  background-color: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(206, 66, 43, 0.3);
-  border-radius: 12px;
+.dashboard-card {
+  background-color: var(--surface-card);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-card);
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   transition: border-color 0.2s;
 }
 
-.news-card:hover {
-  border-color: var(--secondary-color);
+.dashboard-card:hover {
+  border-color: var(--accent);
 }
 
-.news-card h3 {
-  margin: 0 0 0.5rem 0;
-  color: white;
-}
-
-.news-date {
-  color: #aaa;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-}
-
-.news-body {
-  color: #ddd;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.read-more {
-  padding: 0.6rem 1.5rem;
-  background-color: #738d45;
-  color: white;
-  border: none;
-  border-radius: 1px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background-color 0.2s;
-}
-
-.read-more:hover {
-  background-color: #5f7639;
-  text-decoration: none;
-}
-
-.news-footer {
-  margin-top: 2rem;
-  text-align: center;
-  padding: 1.5rem;
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.read-more-link {
-  color: var(--secondary-color);
-  text-decoration: none;
+.dashboard-card h3 {
+  margin: 0;
+  color: var(--text-primary);
   font-size: 1.1rem;
-  font-weight: 500;
+}
+
+.dashboard-card-value {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.dashboard-card-action {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  align-self: flex-start;
+  margin-top: auto;
 }
 
-.read-more-link:hover {
-  text-decoration: underline;
+.dashboard-card-disabled {
+  opacity: 0.5;
 }
 
 .library-page {

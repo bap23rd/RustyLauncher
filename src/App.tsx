@@ -5,12 +5,16 @@ import { CuratedDownloadModal } from './components/CuratedDownloadModal';
 import { SettingsModal } from './components/SettingsModal';
 import { StickyFooter } from './components/StickyFooter';
 import { UnarchiveModal } from './components/UnarchiveModal';
+import { Sidebar } from './components/Sidebar';
+import { AtmosphereBackground } from './components/AtmosphereBackground';
+import { ServerDownloadModal } from './components/ServerDownloadModal';
 import { HomePage } from './pages/HomePage';
 import { LibraryPage } from './pages/LibraryPage';
 import { DownloadPage } from './pages/DownloadPage';
+import { ServersPage } from './pages/ServersPage';
 import type { CuratedVersion } from './types/curatedVersions';
 
-type Page = 'home' | 'library' | 'downloads';
+type Page = 'home' | 'library' | 'downloads' | 'servers';
 
 export interface OperationStatus {
     type: 'archive' | 'unarchive' | 'download';
@@ -23,6 +27,8 @@ export interface OperationStatus {
 function App() {
     const [currentPage, setCurrentPage] = useState<Page>('home');
     const [showDownloadModal, setShowDownloadModal] = useState(false);
+    const [showServerDownloadModal, setShowServerDownloadModal] = useState(false);
+    const [serversRefreshKey, setServersRefreshKey] = useState(0);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [showUnarchiveModal, setShowUnarchiveModal] = useState(false);
     const [selectedCuratedVersion, setSelectedCuratedVersion] = useState<CuratedVersion | null>(null);
@@ -128,70 +134,77 @@ function App() {
         setRefreshKey(prev => prev + 1); // Refresh version library
     };
 
+    const handleServerDownloadClose = () => {
+        setShowServerDownloadModal(false);
+        setServersRefreshKey(prev => prev + 1); // Refresh server library
+    };
+
     const handleNavigate = (page: Page) => {
         setCurrentPage(page);
     };
 
     return (
-        <div className="app-container">
-            <div className="content-wrapper">
-                <header className="header">
-                    <button className="settings-icon" onClick={() => setShowSettingsModal(true)} title="Settings">
-                        ⚙️
-                    </button>
-                    <h1>RustyLauncher</h1>
-                    <p>Install, Manage, and Launch Rust versions to avoid those pesky wipes!</p>
-                    {currentPage === 'home' && (
-                        <div className="header-buttons">
-                            <button className="download-btn" onClick={() => setCurrentPage('downloads')}>
-                                Download Version
-                            </button>
-                            <button className="library-btn" onClick={() => setCurrentPage('library')}>
-                                📚 Library
-                            </button>
-                        </div>
-                    )}
+        <div className="app-shell">
+            <Sidebar currentPage={currentPage} onNavigate={handleNavigate} onOpenSettings={handleOpenSettings} />
+
+            <div className="app-container">
+                <AtmosphereBackground />
+
+                <div className="content-wrapper">
                     {currentPage === 'library' && (
-                        <div className="header-buttons">
-                            <button className="back-btn" onClick={() => setCurrentPage('home')}>
-                                ← Back to Home
-                            </button>
+                        <header className="page-header">
+                            <h2>Library</h2>
                             <button className="unarchive-btn" onClick={() => setShowUnarchiveModal(true)}>
-                                📦 Unarchive
+                                Unarchive
                             </button>
-                        </div>
+                        </header>
                     )}
                     {currentPage === 'downloads' && (
-                        <div className="header-buttons">
-                            <button className="back-btn" onClick={() => setCurrentPage('home')}>
-                                ← Back to Home
-                            </button>
+                        <header className="page-header">
+                            <h2>Download a Version</h2>
                             <button className="download-btn" onClick={() => setShowDownloadModal(true)}>
                                 Custom Download
                             </button>
-                            <button className="library-btn" onClick={() => setCurrentPage('library')}>
-                                Library →
+                        </header>
+                    )}
+                    {currentPage === 'servers' && (
+                        <header className="page-header">
+                            <h2>Servers</h2>
+                            <button className="download-btn" onClick={() => setShowServerDownloadModal(true)}>
+                                Install Server
                             </button>
-                        </div>
+                        </header>
                     )}
-                </header>
 
-                <main className="main-content">
-                    {currentPage === 'home' && <HomePage />}
-                    {currentPage === 'library' && (
-                        <LibraryPage
-                            onRefresh={handleRefresh}
-                            refreshKey={refreshKey}
-                            activeOperations={activeOperations}
-                            onOpenInstallPaths={openInstallPathsSettings}
-                        />
-                    )}
-                    {currentPage === 'downloads' && (
-                        <DownloadPage
-                            onOpenCuratedDownload={(version) => setSelectedCuratedVersion(version)}
-                        />
-                    )}
-                </main>
+                    <main className="main-content">
+                        {currentPage === 'home' && (
+                            <HomePage
+                                onNavigateLibrary={() => setCurrentPage('library')}
+                                onNavigateDownloads={() => setCurrentPage('downloads')}
+                                onNavigateServers={() => setCurrentPage('servers')}
+                            />
+                        )}
+                        {currentPage === 'library' && (
+                            <LibraryPage
+                                onRefresh={handleRefresh}
+                                refreshKey={refreshKey}
+                                activeOperations={activeOperations}
+                                onOpenInstallPaths={openInstallPathsSettings}
+                            />
+                        )}
+                        {currentPage === 'downloads' && (
+                            <DownloadPage
+                                onOpenCuratedDownload={(version) => setSelectedCuratedVersion(version)}
+                            />
+                        )}
+                        {currentPage === 'servers' && (
+                            <ServersPage
+                                refreshKey={serversRefreshKey}
+                                onRefresh={() => setServersRefreshKey(prev => prev + 1)}
+                            />
+                        )}
+                    </main>
+                </div>
             </div>
 
             <StickyFooter
@@ -202,6 +215,7 @@ function App() {
             />
 
             {showDownloadModal && <DownloadModal onClose={handleDownloadClose} />}
+            {showServerDownloadModal && <ServerDownloadModal onClose={handleServerDownloadClose} />}
             {showSettingsModal && <SettingsModal onClose={() => setShowSettingsModal(false)} initialSection={settingsInitialSection} />}
             {showUnarchiveModal && (
                 <UnarchiveModal

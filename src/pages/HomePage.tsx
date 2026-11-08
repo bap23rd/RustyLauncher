@@ -1,37 +1,60 @@
 import { useEffect, useState } from 'react';
-import { getRustNews, type NewsItem } from '../services/steamApi';
+import { PlayCircle, BookOpen, DownloadSimple, HardDrives } from '@phosphor-icons/react';
 import '../App.css';
 
-export function HomePage() {
-    const [news, setNews] = useState<NewsItem[]>([]);
+interface HomePageProps {
+    onNavigateLibrary: () => void;
+    onNavigateDownloads: () => void;
+    onNavigateServers: () => void;
+}
+
+export function HomePage({ onNavigateLibrary, onNavigateDownloads, onNavigateServers }: HomePageProps) {
+    const [lastPlayedVersion, setLastPlayedVersion] = useState<RustVersion | null>(null);
+    const [versionCount, setVersionCount] = useState(0);
+    const [serverCount, setServerCount] = useState(0);
 
     useEffect(() => {
-        const fetchNews = async () => {
-            const items = await getRustNews();
-            setNews(items);
-        };
-        fetchNews();
+        window.electronAPI.getLastPlayedVersion().then(setLastPlayedVersion);
+        window.electronAPI.getVersions().then(versions => setVersionCount(versions.length));
+        window.electronAPI.getServers().then(servers => setServerCount(servers.length));
     }, []);
 
     return (
-        <section className="news-section">
-            <h2>Latest Rust News</h2>
-            <div className="news-list">
-                {news.map((item) => (
-                    <div key={item.gid} className="news-card">
-                        <h3>{item.title}</h3>
-                        <p className="news-date">{new Date(item.date * 1000).toLocaleDateString()}</p>
-                        <div className="news-body">
-                            {item.contents.replace(/\[.*?\]/g, '').substring(0, 200)}...
-                        </div>
-                        <a href={item.url} target="_blank" rel="noreferrer" className="read-more">Read Full Notes</a>
-                    </div>
-                ))}
-            </div>
-            <div className="news-footer">
-                <a href="https://rust.facepunch.com/news/" target="_blank" rel="noreferrer" className="read-more-link">
-                    Read more Rust news from Facepunch →
-                </a>
+        <section className="dashboard">
+            <div className="dashboard-grid">
+                <div className="dashboard-card">
+                    <h3>Last Played</h3>
+                    <p className="dashboard-card-value">
+                        {lastPlayedVersion ? (lastPlayedVersion.name || `Version ${lastPlayedVersion.id}`) : 'No versions yet'}
+                    </p>
+                    <button className="dashboard-card-action" onClick={onNavigateLibrary}>
+                        <PlayCircle size={18} weight="bold" /> Go to Library
+                    </button>
+                </div>
+
+                <div className="dashboard-card">
+                    <h3>Game Versions</h3>
+                    <p className="dashboard-card-value">{versionCount} installed</p>
+                    <button className="dashboard-card-action" onClick={onNavigateLibrary}>
+                        <BookOpen size={18} weight="bold" /> View Library
+                    </button>
+                </div>
+
+                <div className="dashboard-card">
+                    <h3>Get a New Version</h3>
+                    <p className="dashboard-card-value">Download a curated or custom build</p>
+                    <button className="dashboard-card-action" onClick={onNavigateDownloads}>
+                        <DownloadSimple size={18} weight="bold" /> Download Version
+                    </button>
+                </div>
+
+                <div className="dashboard-card">
+                    <h3>Servers</h3>
+                    <p className="dashboard-card-value">{serverCount} installed</p>
+                    <button className="dashboard-card-action" onClick={onNavigateServers}>
+                        <HardDrives size={18} weight="bold" /> View Servers
+                    </button>
+                </div>
             </div>
         </section>
     );

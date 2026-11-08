@@ -1,0 +1,44 @@
+.server-mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.server-mode-toggle button {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-input);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.server-mode-toggle button:hover:not(:disabled) {
+    background-color: var(--accent-border-strong);
+}
+
+.server-mode-toggle button.active {
+    background-color: var(--accent-border);
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.server-mode-toggle button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.server-mode-note {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-input);
+    padding: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 1.5rem;
+}

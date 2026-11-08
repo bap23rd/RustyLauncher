@@ -113,6 +113,9 @@
 .curated-download-modal .steam-guard-notice p {
     margin: 0.5rem 0;
     color: #ddd;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
 }
 
 .curated-download-modal .steam-guard-notice strong {

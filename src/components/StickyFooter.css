@@ -105,6 +105,9 @@
     cursor: pointer;
     transition: background-color 0.2s;
     font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .hamburger-menu button:hover:not(:disabled) {

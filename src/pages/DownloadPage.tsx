@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Star, Stack, DownloadSimple } from '@phosphor-icons/react';
 import type { CuratedVersion } from '../types/curatedVersions';
-import '../App.css';
+import './DownloadPage.css';
 
 interface DownloadPageProps {
     onOpenCuratedDownload: (version: CuratedVersion) => void;
@@ -28,54 +29,52 @@ export function DownloadPage({ onOpenCuratedDownload }: DownloadPageProps) {
     };
 
     return (
-        <>
-            {/* RustyLauncher Recommended Section */}
-            <section className="news-section">
-                <h2>RustyLauncher Recommended</h2>
-                <div className="news-list">
-                    {recommendedVersions.length === 0 ? (
-                        <p className="empty-message">No recommended versions available.</p>
-                    ) : (
-                        recommendedVersions.map((version, index) => (
-                            <div key={index} className="news-card">
+        <div className="curated-sections">
+            <section className="curated-section">
+                <h2><Star size={24} weight="bold" /> RustyLauncher Recommended</h2>
+                {recommendedVersions.length === 0 ? (
+                    <p className="empty-message">No recommended versions available.</p>
+                ) : (
+                    <div className="curated-grid">
+                        {recommendedVersions.map((version, index) => (
+                            <div key={index} className="curated-card">
                                 <h3>{version.title}</h3>
-                                <p className="news-date">{version.versionDate}</p>
+                                <p className="version-date">{version.versionDate}</p>
                                 <button
-                                    className="read-more"
+                                    className="btn-download"
                                     onClick={() => onOpenCuratedDownload(version)}
                                 >
-                                    Download
+                                    <DownloadSimple size={16} weight="bold" /> Download
                                 </button>
                             </div>
-                        ))
-                    )}
-                </div>
+                        ))}
+                    </div>
+                )}
             </section>
 
             <hr className="section-divider" />
 
-            {/* Other Versions Section */}
-            <section className="news-section">
-                <h2>Other Versions</h2>
-                <div className="news-list">
-                    {otherVersions.length === 0 ? (
-                        <p className="empty-message">No other versions available.</p>
-                    ) : (
-                        otherVersions.map((version, index) => (
-                            <div key={index} className="news-card">
+            <section className="curated-section">
+                <h2><Stack size={24} weight="bold" /> Other Versions</h2>
+                {otherVersions.length === 0 ? (
+                    <p className="empty-message">No other versions available.</p>
+                ) : (
+                    <div className="curated-grid">
+                        {otherVersions.map((version, index) => (
+                            <div key={index} className="curated-card">
                                 <h3>{version.title}</h3>
-                                <p className="news-date">{version.versionDate}</p>
+                                <p className="version-date">{version.versionDate}</p>
                                 <button
-                                    className="read-more"
+                                    className="btn-download"
                                     onClick={() => onOpenCuratedDownload(version)}
                                 >
-                                    Download
+                                    <DownloadSimple size={16} weight="bold" /> Download
                                 </button>
                             </div>
-                        ))
-                    )}
-                </div>
+                        ))}
+                    </div>
+                )}
             </section>
-        </>
+        </div>
     );
 }

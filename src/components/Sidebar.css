@@ -1,0 +1,98 @@
+.sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    height: 100vh;
+    background-color: var(--surface-1);
+    border-right: 1px solid var(--accent-border);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    /* Extra bottom padding keeps sidebar-footer content clear of the sticky quick-launch
+       footer, which is position:fixed and intentionally overlays the sidebar on top. */
+    padding-bottom: calc(1.5rem + 90px);
+    box-sizing: border-box;
+}
+
+.sidebar-brand {
+    margin-bottom: 2rem;
+    padding: 0 0.5rem;
+}
+
+.sidebar-brand-name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sidebar-brand-accent {
+    color: var(--accent);
+}
+
+.sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-section-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-disabled);
+    padding: 0 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-input);
+    color: var(--text-secondary);
+    padding: 0.6rem 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-link:hover:not(:disabled) {
+    background-color: var(--accent-border-strong);
+    color: var(--text-primary);
+}
+
+.sidebar-link.active {
+    background-color: var(--accent-border);
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.sidebar-link-disabled,
+.sidebar-link:disabled {
+    color: var(--text-disabled);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--accent-border);
+    padding-top: 1rem;
+    flex-shrink: 0;
+}
+
+.sidebar-footer .sidebar-link {
+    background-color: var(--accent-border-strong);
+    border-color: var(--accent-border);
+    color: var(--text-primary);
+}
+
+.sidebar-footer .sidebar-link:hover {
+    background-color: var(--accent-border);
+    border-color: var(--accent);
+}

@@ -3,10 +3,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
 import { DepotDownloaderService } from './downloader.js';
+import { SteamCmdService } from './steamCmdService.js';
 import { GameLauncher } from './launcher.js';
+import { DEFAULT_SERVER_CONFIG, loadServerConfig, saveServerConfig, detectOxide, getModsFolderPath } from './serverConfig.js';
+import type { ServerLaunchConfig } from './serverConfig.js';
 import https from 'https';
 import fs from 'fs';
-import Parser from 'rss-parser';
 import { initSettingsDatabase, getSetting, setSetting, deleteSetting, getAllSettings, getInstallPaths, addInstallPath, removeInstallPath, updateLastUsedPath, getMostRecentPath } from './settings.js';
 import archiver from 'archiver';
 import extract from 'extract-zip';
@@ -66,6 +68,21 @@ function initDatabase() {
       lastPlayed INTEGER DEFAULT 0
     )
   `);
+
+    // Servers are tracked separately from game-client versions - either installed pinned
+    // to a manifest/depot (DepotDownloader) or tracking "latest" via SteamCMD app_update.
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS servers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      installType TEXT NOT NULL,
+      appId TEXT NOT NULL,
+      depotId TEXT,
+      manifestId TEXT,
+      installPath TEXT NOT NULL,
+      createdAt TEXT
+    )
+  `);
 }
 
 app.whenReady().then(() => {
@@ -88,7 +105,9 @@ app.on('window-all-closed', () => {
 
 // IPC Handlers
 const downloaderService = new DepotDownloaderService();
+const steamCmdService = new SteamCmdService();
 const gameLauncher = new GameLauncher();
+const DEFAULT_SERVER_APP_ID = '258550'; // Rust Dedicated Server
 
 ipcMain.handle('get-app-version', () => {
     return app.getVersion();
@@ -102,33 +121,6 @@ ipcMain.handle('get-versions', () => {
 ipcMain.handle('get-last-played-version', () => {
     if (!db) return null;
     return db.prepare('SELECT * FROM versions ORDER BY lastPlayed DESC LIMIT 1').get();
-});
-
-ipcMain.handle('get-rust-news', async () => {
-    try {
-        const parser = new Parser();
-        const feed = await parser.parseURL('https://rust.facepunch.com/rss/news');
-
-        // Get top 5 items and format them
-        const items = feed.items.slice(0, 5).map(item => {
-            // Strip HTML tags from description
-            const description = item.contentSnippet || item.content || '';
-            const cleanDescription = description.replace(/<[^>]*>/g, '').trim();
-
-            return {
-                title: item.title || 'No title',
-                contents: cleanDescription,
-                date: new Date(item.pubDate || item.isoDate || '').getTime() / 1000,
-                url: item.link || '',
-                gid: item.guid || item.link || ''
-            };
-        });
-
-        return items;
-    } catch (error) {
-        console.error('Error fetching Rust news from Facepunch RSS:', error);
-        return [];
-    }
 });
 
 ipcMain.handle('start-download', async (_event: any, config: any) => {
@@ -234,6 +226,162 @@ ipcMain.handle('start-download', async (_event: any, config: any) => {
 
 ipcMain.handle('cancel-download', () => {
     downloaderService.cancel();
+});
+
+// --- Server management ---
+
+ipcMain.handle('get-servers', () => {
+    if (!db) return [];
+    return db.prepare('SELECT * FROM servers ORDER BY createdAt DESC').all();
+});
+
+ipcMain.handle('start-server-download-manifest', async (_event: any, config: any) => {
+    const serverName = config.name || `Rust Server: ${config.manifestId}`;
+    const basePath = config.installPath || path.join(app.getPath('userData'), 'RustServers');
+    const installDir = path.join(basePath, config.manifestId);
+
+    if (config.installPath) {
+        const normalizedPath = path.normalize(config.installPath);
+        const existingPaths = getInstallPaths();
+        if (!existingPaths.some(p => path.normalize(p.path) === normalizedPath)) {
+            addInstallPath(normalizedPath);
+        }
+        updateLastUsedPath(normalizedPath);
+    }
+
+    downloaderService.startSingleDepotDownload(
+        {
+            appId: config.appId || DEFAULT_SERVER_APP_ID,
+            depotId: config.depotId,
+            manifestId: config.manifestId,
+            installPath: installDir,
+            username: config.username,
+            password: config.password,
+        },
+        (data) => mainWindow?.webContents.send('server-download-progress', { type: 'stdout', data, name: serverName }),
+        (error) => mainWindow?.webContents.send('server-download-progress', { type: 'stderr', data: error, name: serverName }),
+        (code) => {
+            mainWindow?.webContents.send('server-download-complete', { code, name: serverName });
+
+            if (code === 0 && db) {
+                db.prepare(
+                    'INSERT INTO servers (name, installType, appId, depotId, manifestId, installPath, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+                ).run(serverName, 'manifest', config.appId || DEFAULT_SERVER_APP_ID, config.depotId, config.manifestId, installDir, new Date().toISOString());
+                saveServerConfig(installDir, { ...DEFAULT_SERVER_CONFIG, hostname: { enabled: true, value: serverName } });
+            } else if (code !== 0 && fs.existsSync(installDir)) {
+                fs.rmSync(installDir, { recursive: true, force: true });
+            }
+        }
+    );
+});
+
+ipcMain.handle('start-server-download-latest', async (_event: any, config: any) => {
+    const appId = config.appId || DEFAULT_SERVER_APP_ID;
+    const serverName = config.name || `Rust Server (Latest)`;
+    const basePath = config.installPath || path.join(app.getPath('userData'), 'RustServers');
+    const installDir = path.join(basePath, `latest-${Date.now()}`);
+
+    if (config.installPath) {
+        const normalizedPath = path.normalize(config.installPath);
+        const existingPaths = getInstallPaths();
+        if (!existingPaths.some(p => path.normalize(p.path) === normalizedPath)) {
+            addInstallPath(normalizedPath);
+        }
+        updateLastUsedPath(normalizedPath);
+    }
+
+    await steamCmdService.installLatest(
+        appId,
+        installDir,
+        (data) => mainWindow?.webContents.send('server-download-progress', { type: 'stdout', data, name: serverName }),
+        (error) => mainWindow?.webContents.send('server-download-progress', { type: 'stderr', data: error, name: serverName }),
+        (code) => {
+            mainWindow?.webContents.send('server-download-complete', { code, name: serverName });
+
+            if (code === 0 && db) {
+                db.prepare(
+                    'INSERT INTO servers (name, installType, appId, depotId, manifestId, installPath, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+                ).run(serverName, 'latest', appId, null, null, installDir, new Date().toISOString());
+                saveServerConfig(installDir, { ...DEFAULT_SERVER_CONFIG, hostname: { enabled: true, value: serverName } });
+            } else if (code !== 0 && fs.existsSync(installDir)) {
+                fs.rmSync(installDir, { recursive: true, force: true });
+            }
+        }
+    );
+});
+
+ipcMain.handle('cancel-server-download', () => {
+    downloaderService.cancel();
+    steamCmdService.cancel();
+});
+
+ipcMain.handle('rename-server', (_event: any, serverId: number, newName: string) => {
+    if (!db) return { success: false, error: 'Database not initialized' };
+    try {
+        db.prepare('UPDATE servers SET name = ? WHERE id = ?').run(newName, serverId);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('delete-server', (_event: any, serverId: number) => {
+    if (!db) return { success: false, error: 'Database not initialized' };
+
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId) as any;
+    if (!server) return { success: false, error: 'Server not found' };
+
+    try {
+        if (fs.existsSync(server.installPath)) {
+            fs.rmSync(server.installPath, { recursive: true, force: true });
+        }
+        db.prepare('DELETE FROM servers WHERE id = ?').run(serverId);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('browse-server-files', (_event: any, installPath: string) => {
+    shell.openPath(installPath);
+    return { success: true };
+});
+
+ipcMain.handle('get-server-config', (_event: any, serverId: number) => {
+    if (!db) return null;
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId) as any;
+    if (!server) return null;
+
+    return {
+        config: loadServerConfig(server.installPath),
+        hasOxide: detectOxide(server.installPath),
+    };
+});
+
+ipcMain.handle('save-server-config', (_event: any, serverId: number, config: ServerLaunchConfig) => {
+    if (!db) return { success: false, error: 'Database not initialized' };
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId) as any;
+    if (!server) return { success: false, error: 'Server not found' };
+
+    try {
+        saveServerConfig(server.installPath, config);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('open-server-mods-folder', (_event: any, serverId: number) => {
+    if (!db) return { success: false, error: 'Database not initialized' };
+    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId) as any;
+    if (!server) return { success: false, error: 'Server not found' };
+
+    const modsPath = getModsFolderPath(server.installPath);
+    if (!fs.existsSync(modsPath)) {
+        fs.mkdirSync(modsPath, { recursive: true });
+    }
+    shell.openPath(modsPath);
+    return { success: true };
 });
 
 ipcMain.handle('launch-version', (_event: any, versionId: number, eacEnabled: boolean) => {
