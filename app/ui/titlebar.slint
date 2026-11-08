@@ -1,0 +1,61 @@
+import { Theme } from "theme.slint";
+
+component CaptionButton inherits Rectangle {
+    in property <image> icon;
+    in property <bool> danger;
+    callback clicked();
+
+    width: 46px;
+    background: ta.has-hover ? (root.danger ? Theme.error : Theme.hover) : transparent;
+    animate background { duration: 80ms; }
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 12px;
+        height: 12px;
+        source: root.icon;
+        colorize: ta.has-hover && root.danger ? white : Theme.text-secondary;
+    }
+    ta := TouchArea {
+        mouse-cursor: MouseCursor.default;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Replaces the standard Windows title bar: drag to move, double-click to maximise,
+// and minimise / maximise / close buttons on the right.
+export component TitleBar inherits Rectangle {
+    in property <bool> maximized;
+    callback minimize();
+    callback toggle-maximize();
+    callback close();
+
+    height: 32px;
+    background: Theme.surface-sidebar;
+
+    WindowMoveArea {
+        width: parent.width;
+        height: parent.height;
+        TouchArea {
+            double-clicked => { root.toggle-maximize(); }
+        }
+    }
+    Text {
+        x: 16px;
+        text: "RustyLauncher";
+        color: Theme.text-faint;
+        font-size: 12px;
+        vertical-alignment: center;
+        height: parent.height;
+    }
+    HorizontalLayout {
+        alignment: end;
+        CaptionButton { icon: @image-url("icons/minus.svg"); clicked => { root.minimize(); } }
+        CaptionButton {
+            icon: root.maximized ? @image-url("icons/copy.svg") : @image-url("icons/square.svg");
+            clicked => { root.toggle-maximize(); }
+        }
+        CaptionButton { icon: @image-url("icons/x-regular.svg"); danger: true; clicked => { root.close(); } }
+    }
+}

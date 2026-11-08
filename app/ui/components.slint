@@ -308,15 +308,16 @@ export component Modal inherits Rectangle {
     }
 }
 
-// Two stacked images that cross-fade, under a dark overlay. Draws nothing if there are no images.
-export component BackgroundFade inherits Rectangle {
-    in property <image> image-a;
-    in property <image> image-b;
-    in property <bool> has-images;
-    in property <bool> show-b;
+// The window background: a diagonal gradient from the accent colour into the dark brown,
+// under a dark overlay so text stays readable. "Red" is the default; "blue" cross-fades in.
+export component Atmosphere inherits Rectangle {
+    in property <bool> blue;
 
-    visible: root.has-images;
-    Image { width: 100%; height: 100%; source: root.image-a; image-fit: cover; opacity: root.show-b ? 0.0 : 1.0; animate opacity { duration: 900ms; easing: ease-in-out; } }
-    Image { width: 100%; height: 100%; source: root.image-b; image-fit: cover; opacity: root.show-b ? 1.0 : 0.0; animate opacity { duration: 900ms; easing: ease-in-out; } }
-    Rectangle { background: #281C1Cb3; } // dark overlay keeps text readable
+    Rectangle { background: @linear-gradient(135deg, Theme.accent 0%, Theme.primary 100%); }
+    Rectangle {
+        background: @linear-gradient(135deg, Theme.info 0%, Theme.primary 100%);
+        opacity: root.blue ? 1.0 : 0.0;
+        animate opacity { duration: 600ms; easing: ease-in-out; }
+    }
+    Rectangle { background: #281C1Cb3; }
 }

@@ -86,15 +86,16 @@ fn main() {
         app.invoke_show_toast(notice.into(), "error".into());
     }
 
-    // Work that must not delay the first frame runs from the event loop once it is up.
+    // The window has no standard title bar, so the close button is ours: hiding the only window ends the event loop.
     {
         let weak = app.as_weak();
-        slint::Timer::single_shot(Duration::from_millis(100), move || {
+        app.on_close_clicked(move || {
             if let Some(app) = weak.upgrade() {
-                load_backgrounds(&app);
+                let _ = app.hide();
             }
         });
     }
+
     // `RL_STARTUP_PROBE=1` prints the time of the first event-loop turn and exits (used to check the startup budget).
     if std::env::var_os("RL_STARTUP_PROBE").is_some() {
         slint::Timer::single_shot(Duration::from_millis(30), move || {
@@ -175,39 +176,5 @@ fn tile(v: &Version) -> VersionTile {
             .unwrap_or_else(|| "Never".to_string())
             .into(),
         eac: v.eac_enabled,
-    }
-}
-
-/// Load background pictures from `assets/backgrounds` next to the program, after the first frame.
-/// With no pictures the background simply stays the plain dark brown.
-fn load_backgrounds(app: &App) {
-    let Some(dir) = std::env::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(|p| p.join("assets").join("backgrounds")))
-    else {
-        return;
-    };
-    let Ok(read) = std::fs::read_dir(&dir) else {
-        return;
-    };
-    let mut files: Vec<PathBuf> = read
-        .flatten()
-        .map(|e| e.path())
-        .filter(|p| {
-            p.extension()
-                .and_then(|e| e.to_str())
-                .is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg"))
-        })
-        .collect();
-    files.sort();
-    let mut images = files
-        .iter()
-        .filter_map(|p| slint::Image::load_from_path(p).ok());
-    if let Some(a) = images.next() {
-        // With one picture, use it for both layers so the fade is a no-op.
-        let b = images.next().unwrap_or_else(|| a.clone());
-        app.set_bg_a(a);
-        app.set_bg_b(b);
-        app.set_bg_ready(true);
     }
 }

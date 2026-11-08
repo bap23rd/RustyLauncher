@@ -1,6 +1,7 @@
 import { Theme } from "theme.slint";
 import { VersionTile } from "types.slint";
-import { NavItem, QuickLaunch, Toast, Modal, BackgroundFade } from "components.slint";
+import { NavItem, QuickLaunch, Toast, Modal, Atmosphere } from "components.slint";
+import { TitleBar } from "titlebar.slint";
 import { HomePage } from "pages/home.slint";
 import { LibraryPage } from "pages/library.slint";
 import { DownloadPage } from "pages/download.slint";
@@ -11,6 +12,9 @@ export { VersionTile }
 
 export component App inherits Window {
     title: "RustyLauncher";
+    // We draw our own title bar (see titlebar.slint). The 6px border is the grab area for resizing.
+    no-frame: true;
+    resize-border-width: 6px;
     preferred-width: 1180px;
     preferred-height: 760px;
     min-width: 900px;
@@ -20,6 +24,15 @@ export component App inherits Window {
 
     // Navigation: "home" | "library" | "download" | "servers" | "settings"
     in-out property <string> page: "home";
+    // Background: red by default, blue on the Servers page. Settings keeps whichever was last shown.
+    property <bool> blue-atmosphere: false;
+    changed page => {
+        if (root.page == "servers") {
+            root.blue-atmosphere = true;
+        } else if (root.page != "settings") {
+            root.blue-atmosphere = false;
+        }
+    }
 
     // Data from Rust
     in property <[VersionTile]> versions;
@@ -31,12 +44,6 @@ export component App inherits Window {
     in property <string> data-dir;
     in property <string> app-version;
 
-    // Lazy background images (loaded after the first frame)
-    in property <image> bg-a;
-    in property <image> bg-b;
-    in property <bool> bg-ready;
-    property <bool> bg-show-b;
-
     // Toast + dialog state
     in-out property <bool> toast-shown;
     in-out property <string> toast-text;
@@ -45,6 +52,7 @@ export component App inherits Window {
 
     callback launch-clicked();
     callback eac-changed(bool);
+    callback close-clicked();
 
     public function show-toast(text: string, kind: string) {
         root.toast-text = text;
@@ -57,87 +65,87 @@ export component App inherits Window {
         running: root.toast-shown;
         triggered => { root.toast-shown = false; }
     }
-    // Rotate backgrounds only when there are images, so an idle window costs nothing.
-    Timer {
-        interval: 30s;
-        running: root.bg-ready;
-        triggered => { root.bg-show-b = !root.bg-show-b; }
-    }
 
-    BackgroundFade {
+    Atmosphere {
         width: parent.width;
         height: parent.height;
-        image-a: root.bg-a;
-        image-b: root.bg-b;
-        has-images: root.bg-ready;
-        show-b: root.bg-show-b;
+        blue: root.blue-atmosphere;
     }
 
-    HorizontalLayout {
-        // Sidebar
-        Rectangle {
-            width: Theme.sidebar-width;
-            background: Theme.surface-sidebar;
-            VerticalLayout {
-                padding: 16px;
-                spacing: 4px;
-                Text {
-                    text: "RUSTYLAUNCHER";
-                    color: Theme.accent;
-                    font-size: 16px;
-                    font-weight: 800;
-                    height: 48px;
-                    vertical-alignment: center;
-                }
-                NavItem { label: "Home"; icon: @image-url("icons/house.svg"); active: root.page == "home"; clicked => { root.page = "home"; } }
-                Text { text: "GAME"; color: Theme.text-faint; font-size: 11px; font-weight: 700; height: 28px; vertical-alignment: bottom; x: 6px; }
-                NavItem { label: "Library"; icon: @image-url("icons/book-open.svg"); indent: 8px; active: root.page == "library"; clicked => { root.page = "library"; } }
-                NavItem { label: "Download"; icon: @image-url("icons/download-simple.svg"); indent: 8px; active: root.page == "download"; clicked => { root.page = "download"; } }
-                Text { text: "SERVERS"; color: Theme.text-faint; font-size: 11px; font-weight: 700; height: 28px; vertical-alignment: bottom; x: 6px; }
-                NavItem { label: "Servers"; icon: @image-url("icons/hard-drives.svg"); indent: 8px; active: root.page == "servers"; clicked => { root.page = "servers"; } }
-                Rectangle { vertical-stretch: 1; }
-                NavItem { label: "Settings"; icon: @image-url("icons/gear-six.svg"); active: root.page == "settings"; clicked => { root.page = "settings"; } }
-            }
+    VerticalLayout {
+        TitleBar {
+            maximized: root.maximized;
+            minimize => { root.minimized = true; }
+            toggle-maximize => { root.maximized = !root.maximized; }
+            close => { root.close-clicked(); }
         }
 
-        // Content + quick-launch footer
-        VerticalLayout {
+        HorizontalLayout {
+            // Sidebar
             Rectangle {
-                vertical-stretch: 1;
-                if root.page == "home" : HomePage {
-                    width: parent.width;
-                    height: parent.height;
-                    last-played-name: root.has-last-played ? root.last-played-name : "Nothing yet";
-                    last-played-detail: root.last-played-detail;
-                    version-count: root.versions.length;
-                    server-count: root.server-count;
-                    go-download => { root.page = "download"; }
-                }
-                if root.page == "library" : LibraryPage {
-                    width: parent.width;
-                    height: parent.height;
-                    versions: root.versions;
-                    go-download => { root.page = "download"; }
-                }
-                if root.page == "download" : DownloadPage { width: parent.width; height: parent.height; }
-                if root.page == "servers" : ServersPage { width: parent.width; height: parent.height; }
-                if root.page == "settings" : SettingsPage {
-                    width: parent.width;
-                    height: parent.height;
-                    data-dir: root.data-dir;
-                    app-version: root.app-version;
-                    test-toast => { root.show-toast("This is a notification.", "success"); }
-                    test-dialog => { root.dialog-open = true; }
+                width: Theme.sidebar-width;
+                background: Theme.surface-sidebar;
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 4px;
+                    Text {
+                        text: "RUSTYLAUNCHER";
+                        color: Theme.accent;
+                        font-size: 16px;
+                        font-weight: 800;
+                        height: 48px;
+                        vertical-alignment: center;
+                    }
+                    NavItem { label: "Home"; icon: @image-url("icons/house.svg"); active: root.page == "home"; clicked => { root.page = "home"; } }
+                    Text { text: "GAME"; color: Theme.text-faint; font-size: 11px; font-weight: 700; height: 28px; vertical-alignment: bottom; x: 6px; }
+                    NavItem { label: "Library"; icon: @image-url("icons/book-open.svg"); indent: 8px; active: root.page == "library"; clicked => { root.page = "library"; } }
+                    NavItem { label: "Download"; icon: @image-url("icons/download-simple.svg"); indent: 8px; active: root.page == "download"; clicked => { root.page = "download"; } }
+                    Text { text: "SERVERS"; color: Theme.text-faint; font-size: 11px; font-weight: 700; height: 28px; vertical-alignment: bottom; x: 6px; }
+                    NavItem { label: "Servers"; icon: @image-url("icons/hard-drives.svg"); indent: 8px; active: root.page == "servers"; clicked => { root.page = "servers"; } }
+                    Rectangle { vertical-stretch: 1; }
+                    NavItem { label: "Settings"; icon: @image-url("icons/gear-six.svg"); active: root.page == "settings"; clicked => { root.page = "settings"; } }
                 }
             }
-            QuickLaunch {
-                height: Theme.footer-height;
-                has-version: root.has-last-played;
-                version-name: root.last-played-name;
-                detail: root.last-played-detail;
-                eac: root.launch-with-eac;
-                launch => { root.launch-clicked(); }
-                eac-toggled(on) => { root.launch-with-eac = on; root.eac-changed(on); }
+
+            // Content + quick-launch footer
+            VerticalLayout {
+                Rectangle {
+                    vertical-stretch: 1;
+                    if root.page == "home" : HomePage {
+                        width: parent.width;
+                        height: parent.height;
+                        last-played-name: root.has-last-played ? root.last-played-name : "Nothing yet";
+                        last-played-detail: root.last-played-detail;
+                        version-count: root.versions.length;
+                        server-count: root.server-count;
+                        go-download => { root.page = "download"; }
+                    }
+                    if root.page == "library" : LibraryPage {
+                        width: parent.width;
+                        height: parent.height;
+                        versions: root.versions;
+                        go-download => { root.page = "download"; }
+                    }
+                    if root.page == "download" : DownloadPage { width: parent.width; height: parent.height; }
+                    if root.page == "servers" : ServersPage { width: parent.width; height: parent.height; }
+                    if root.page == "settings" : SettingsPage {
+                        width: parent.width;
+                        height: parent.height;
+                        data-dir: root.data-dir;
+                        app-version: root.app-version;
+                        test-toast => { root.show-toast("This is a notification.", "success"); }
+                        test-dialog => { root.dialog-open = true; }
+                    }
+                }
+                QuickLaunch {
+                    height: Theme.footer-height;
+                    has-version: root.has-last-played;
+                    version-name: root.last-played-name;
+                    detail: root.last-played-detail;
+                    eac: root.launch-with-eac;
+                    launch => { root.launch-clicked(); }
+                    eac-toggled(on) => { root.launch-with-eac = on; root.eac-changed(on); }
+                }
             }
         }
     }
@@ -159,5 +167,14 @@ export component App inherits Window {
         confirm-text: "OK";
         confirmed => { root.dialog-open = false; root.show-toast("Confirmed.", "success"); }
         cancelled => { root.dialog-open = false; }
+    }
+
+    // Thin outline so the frameless window has an edge (hidden when maximised).
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: transparent;
+        border-width: root.maximized ? 0px : 1px;
+        border-color: Theme.accent-border;
     }
 }
