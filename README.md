@@ -97,6 +97,8 @@ Please do reach out or open an **issue** or **pull request** on this GitHub! �
 
 ## ⚖️ License and Disclaimers
 
-In accordance with Depot Downloaders **GPL-2.0 license**, that is also what this project uses.
+RustyLauncher is licensed under the **GNU GPL v3.0 or later** (see [LICENSE](LICENSE)).
+
+The bundled DepotDownloader in `resources/DepotDownloader/` is a separate program by the SteamRE team and remains under its own **GPL-2.0** license (see its `LICENSE` file). Versions of RustyLauncher released before 3.0 were licensed under GPL-2.0.
 
 RustyLauncher is not affiliated with Facepunch, Steam, or Depot Downloader.
