@@ -2,7 +2,7 @@
   "name": "rustylauncher",
   "productName": "RustyLauncher",
   "private": true,
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "A desktop application for managing and launching different versions of Rust",
   "author": "RustyLauncher",
   "repository": {
