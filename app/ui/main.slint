@@ -1,0 +1,163 @@
+import { Theme } from "theme.slint";
+import { VersionTile } from "types.slint";
+import { NavItem, QuickLaunch, Toast, Modal, BackgroundFade } from "components.slint";
+import { HomePage } from "pages/home.slint";
+import { LibraryPage } from "pages/library.slint";
+import { DownloadPage } from "pages/download.slint";
+import { ServersPage } from "pages/servers.slint";
+import { SettingsPage } from "pages/settings.slint";
+
+export { VersionTile }
+
+export component App inherits Window {
+    title: "RustyLauncher";
+    preferred-width: 1180px;
+    preferred-height: 760px;
+    min-width: 900px;
+    min-height: 600px;
+    background: Theme.primary;
+    default-font-family: Theme.font;
+
+    // Navigation: "home" | "library" | "download" | "servers" | "settings"
+    in-out property <string> page: "home";
+
+    // Data from Rust
+    in property <[VersionTile]> versions;
+    in property <int> server-count;
+    in property <string> last-played-name;
+    in property <string> last-played-detail;
+    in property <bool> has-last-played;
+    in-out property <bool> launch-with-eac: true;
+    in property <string> data-dir;
+    in property <string> app-version;
+
+    // Lazy background images (loaded after the first frame)
+    in property <image> bg-a;
+    in property <image> bg-b;
+    in property <bool> bg-ready;
+    property <bool> bg-show-b;
+
+    // Toast + dialog state
+    in-out property <bool> toast-shown;
+    in-out property <string> toast-text;
+    in-out property <string> toast-kind: "info";
+    in-out property <bool> dialog-open;
+
+    callback launch-clicked();
+    callback eac-changed(bool);
+
+    public function show-toast(text: string, kind: string) {
+        root.toast-text = text;
+        root.toast-kind = kind;
+        root.toast-shown = true;
+    }
+
+    Timer {
+        interval: 4s;
+        running: root.toast-shown;
+        triggered => { root.toast-shown = false; }
+    }
+    // Rotate backgrounds only when there are images, so an idle window costs nothing.
+    Timer {
+        interval: 30s;
+        running: root.bg-ready;
+        triggered => { root.bg-show-b = !root.bg-show-b; }
+    }
+
+    BackgroundFade {
+        width: parent.width;
+        height: parent.height;
+        image-a: root.bg-a;
+        image-b: root.bg-b;
+        has-images: root.bg-ready;
+        show-b: root.bg-show-b;
+    }
+
+    HorizontalLayout {
+        // Sidebar
+        Rectangle {
+            width: Theme.sidebar-width;
+            background: Theme.surface-sidebar;
+            VerticalLayout {
+                padding: 16px;
+                spacing: 4px;
+                Text {
+                    text: "RUSTYLAUNCHER";
+                    color: Theme.accent;
+                    font-size: 16px;
+                    font-weight: 800;
+                    height: 48px;
+                    vertical-alignment: center;
+                }
+                NavItem { label: "Home"; icon: @image-url("icons/house.svg"); active: root.page == "home"; clicked => { root.page = "home"; } }
+                Text { text: "GAME"; color: Theme.text-faint; font-size: 11px; font-weight: 700; height: 28px; vertical-alignment: bottom; x: 6px; }
+                NavItem { label: "Library"; icon: @image-url("icons/book-open.svg"); indent: 8px; active: root.page == "library"; clicked => { root.page = "library"; } }
+                NavItem { label: "Download"; icon: @image-url("icons/download-simple.svg"); indent: 8px; active: root.page == "download"; clicked => { root.page = "download"; } }
+                Text { text: "SERVERS"; color: Theme.text-faint; font-size: 11px; font-weight: 700; height: 28px; vertical-alignment: bottom; x: 6px; }
+                NavItem { label: "Servers"; icon: @image-url("icons/hard-drives.svg"); indent: 8px; active: root.page == "servers"; clicked => { root.page = "servers"; } }
+                Rectangle { vertical-stretch: 1; }
+                NavItem { label: "Settings"; icon: @image-url("icons/gear-six.svg"); active: root.page == "settings"; clicked => { root.page = "settings"; } }
+            }
+        }
+
+        // Content + quick-launch footer
+        VerticalLayout {
+            Rectangle {
+                vertical-stretch: 1;
+                if root.page == "home" : HomePage {
+                    width: parent.width;
+                    height: parent.height;
+                    last-played-name: root.has-last-played ? root.last-played-name : "Nothing yet";
+                    last-played-detail: root.last-played-detail;
+                    version-count: root.versions.length;
+                    server-count: root.server-count;
+                    go-download => { root.page = "download"; }
+                }
+                if root.page == "library" : LibraryPage {
+                    width: parent.width;
+                    height: parent.height;
+                    versions: root.versions;
+                    go-download => { root.page = "download"; }
+                }
+                if root.page == "download" : DownloadPage { width: parent.width; height: parent.height; }
+                if root.page == "servers" : ServersPage { width: parent.width; height: parent.height; }
+                if root.page == "settings" : SettingsPage {
+                    width: parent.width;
+                    height: parent.height;
+                    data-dir: root.data-dir;
+                    app-version: root.app-version;
+                    test-toast => { root.show-toast("This is a notification.", "success"); }
+                    test-dialog => { root.dialog-open = true; }
+                }
+            }
+            QuickLaunch {
+                height: Theme.footer-height;
+                has-version: root.has-last-played;
+                version-name: root.last-played-name;
+                detail: root.last-played-detail;
+                eac: root.launch-with-eac;
+                launch => { root.launch-clicked(); }
+                eac-toggled(on) => { root.launch-with-eac = on; root.eac-changed(on); }
+            }
+        }
+    }
+
+    Toast {
+        x: parent.width - self.width - 24px;
+        y: parent.height - Theme.footer-height - self.height - 16px;
+        text: root.toast-text;
+        kind: root.toast-kind;
+        shown: root.toast-shown;
+    }
+
+    Modal {
+        width: parent.width;
+        height: parent.height;
+        open: root.dialog-open;
+        title: "Dialog test";
+        body: "This is the shared confirmation dialog. Delete and archive will use it.";
+        confirm-text: "OK";
+        confirmed => { root.dialog-open = false; root.show-toast("Confirmed.", "success"); }
+        cancelled => { root.dialog-open = false; }
+    }
+}

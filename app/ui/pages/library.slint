@@ -1,0 +1,42 @@
+import { Theme } from "../theme.slint";
+import { VersionTile } from "../types.slint";
+import { PageHeader, VersionCard, EmptyState } from "../components.slint";
+
+export component LibraryPage inherits Rectangle {
+    in property <[VersionTile]> versions;
+    callback go-download();
+
+    property <length> gap: 16px;
+    property <length> card-h: 128px;
+    property <length> min-card-w: 300px;
+    property <length> avail: root.width - 2 * Theme.page-padding;
+    property <int> cols: max(1, floor((root.avail + root.gap) / (root.min-card-w + root.gap)));
+    property <length> card-w: (root.avail - (root.cols - 1) * root.gap) / root.cols;
+
+    VerticalLayout {
+        padding: Theme.page-padding;
+        spacing: 20px;
+        PageHeader {
+            title: "Library";
+            subtitle: root.versions.length == 0 ? "Nothing installed yet" : root.versions.length + (root.versions.length == 1 ? " version installed" : " versions installed");
+        }
+        if root.versions.length == 0 : EmptyState {
+            vertical-stretch: 1;
+            title: "Your library is empty";
+            body: "Versions you download appear here as tiles.";
+            action: "Go to Download";
+            action-clicked => { root.go-download(); }
+        }
+        if root.versions.length > 0 : Flickable {
+            vertical-stretch: 1;
+            content-height: ceil(root.versions.length / root.cols) * (root.card-h + root.gap);
+            for v[i] in root.versions : VersionCard {
+                x: mod(i, root.cols) * (root.card-w + root.gap);
+                y: floor(i / root.cols) * (root.card-h + root.gap);
+                width: root.card-w;
+                height: root.card-h;
+                tile: v;
+            }
+        }
+    }
+}

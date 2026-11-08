@@ -1,0 +1,37 @@
+[package]
+name = "rustylauncher"
+description = "RustyLauncher: keep old Rust versions and run permanent servers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+build = "build.rs"
+
+[[bin]]
+name = "RustyLauncher"
+path = "src/main.rs"
+
+[dependencies]
+rl-core = { path = "../crates/rl-core" }
+rl-steam = { path = "../crates/rl-steam" }
+rl-server = { path = "../crates/rl-server" }
+tracing.workspace = true
+# Software renderer only: ~105 ms start and ~43 MiB idle in the Phase 1 spike (GL was 335 ms / 119 MiB).
+slint = { version = "1.18", default-features = false, features = [
+    "std",
+    "backend-winit",
+    "renderer-software",
+    "software-renderer-systemfonts",
+    "compat-1-2",
+    "accessibility",
+] }
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[build-dependencies]
+slint-build = "1.18"

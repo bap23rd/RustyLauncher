@@ -1,0 +1,46 @@
+// Design tokens carried over from V2 (src/index.css, StyleGuide.md).
+export global Theme {
+    // Surfaces
+    out property <color> primary: #281C1C;
+    out property <color> surface-1: #1a1a1a;
+    out property <color> surface-2: #1e1e1e;
+    out property <color> surface-card: #0000004d;
+    out property <color> surface-overlay: #000000b3;
+    out property <color> surface-sidebar: #00000066;
+    out property <color> hover: #ffffff14;
+
+    // Accent (Rust orange-red)
+    out property <color> accent: #CE422B;
+    out property <color> accent-hover: #e0502f;
+    out property <color> accent-border: #CE422B4d;
+    out property <color> accent-border-strong: #CE422B33;
+    out property <color> accent-soft: #CE422B38;
+
+    // Text hierarchy
+    out property <color> text-primary: #ffffff;
+    out property <color> text-secondary: #dddddd;
+    out property <color> text-tertiary: #aaaaaa;
+    out property <color> text-muted: #999999;
+    out property <color> text-faint: #888888;
+    out property <color> text-disabled: #777777;
+
+    // Status
+    out property <color> success: #4caf50;
+    out property <color> error: #d32f2f;
+    out property <color> warning: #ff9800;
+    out property <color> info: #4394ce;
+
+    // Radii
+    out property <length> radius-card: 12px;
+    out property <length> radius-input: 6px;
+    out property <length> radius-button: 2px;
+    out property <length> radius-pill: 12px;
+
+    // Layout
+    out property <length> sidebar-width: 220px;
+    out property <length> footer-height: 64px;
+    out property <length> page-padding: 32px;
+
+    // Inter is not embedded yet (see DevFiles/V3-Plan.md, Phase 2); Segoe UI ships with Windows.
+    out property <string> font: "Segoe UI";
+}

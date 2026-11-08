@@ -1,0 +1,54 @@
+import { Theme } from "../theme.slint";
+import { PageHeader, Card, AppButton } from "../components.slint";
+
+component Row inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> value;
+    spacing: 16px;
+    Text { text: root.label; width: 160px; color: Theme.text-muted; font-size: 13px; }
+    Text { text: root.value; color: Theme.text-secondary; font-size: 13px; overflow: elide; horizontal-stretch: 1; }
+}
+
+export component SettingsPage inherits Rectangle {
+    in property <string> data-dir;
+    in property <string> app-version;
+    in property <string> steam-account: "Not signed in";
+    callback test-toast();
+    callback test-dialog();
+
+    VerticalLayout {
+        padding: Theme.page-padding;
+        spacing: 20px;
+        PageHeader {
+            title: "Settings";
+            subtitle: "Accounts, install locations and about.";
+        }
+        Card {
+            height: 132px;
+            VerticalLayout {
+                padding: 18px;
+                spacing: 10px;
+                Text { text: "ABOUT"; color: Theme.text-muted; font-size: 12px; font-weight: 600; }
+                Row { label: "Version"; value: root.app-version; }
+                Row { label: "Data folder"; value: root.data-dir; }
+                Row { label: "Steam account"; value: root.steam-account; }
+            }
+        }
+        Card {
+            height: 120px;
+            VerticalLayout {
+                padding: 18px;
+                spacing: 12px;
+                Text { text: "DEVELOPER"; color: Theme.text-muted; font-size: 12px; font-weight: 600; }
+                Text { text: "Try the shared notification and dialog components. Removed before release."; color: Theme.text-tertiary; font-size: 13px; }
+                HorizontalLayout {
+                    spacing: 10px;
+                    alignment: start;
+                    AppButton { text: "Show notification"; primary: false; clicked => { root.test-toast(); } }
+                    AppButton { text: "Show dialog"; primary: false; clicked => { root.test-dialog(); } }
+                }
+            }
+        }
+        Rectangle { vertical-stretch: 1; }
+    }
+}

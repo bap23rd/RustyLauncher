@@ -42,3 +42,7 @@ DevFiles/
 *.njsproj
 *.sln
 *.sw?
+
+# Rust build output
+target/
+**/dist/

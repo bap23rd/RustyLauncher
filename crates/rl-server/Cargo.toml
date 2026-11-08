@@ -1,0 +1,11 @@
+[package]
+name = "rl-server"
+description = "RustyLauncher rl-server (placeholder, filled in by a later phase)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rl-core = { path = "../rl-core" }

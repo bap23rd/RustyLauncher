@@ -1,0 +1,18 @@
+import { Theme } from "../theme.slint";
+import { PageHeader, EmptyState } from "../components.slint";
+
+export component ServersPage inherits Rectangle {
+    VerticalLayout {
+        padding: Theme.page-padding;
+        spacing: 20px;
+        PageHeader {
+            title: "Servers";
+            subtitle: "Install, configure and run dedicated servers.";
+        }
+        EmptyState {
+            vertical-stretch: 1;
+            title: "Servers are coming";
+            body: "Pinned and latest server installs arrive in Phase 5; running them in Phase 6.";
+        }
+    }
+}

@@ -1,0 +1,36 @@
+import { Theme } from "../theme.slint";
+import { PageHeader, StatCard, EmptyState } from "../components.slint";
+
+export component HomePage inherits Rectangle {
+    in property <string> last-played-name;
+    in property <string> last-played-detail;
+    in property <int> version-count;
+    in property <int> server-count;
+    in property <string> running-server: "None running";
+    callback go-download();
+
+    VerticalLayout {
+        padding: Theme.page-padding;
+        spacing: 24px;
+        PageHeader {
+            title: "Home";
+            subtitle: "Keep old Rust versions and run permanent servers.";
+        }
+        HorizontalLayout {
+            spacing: 16px;
+            height: 112px;
+            StatCard { label: "LAST PLAYED"; value: root.last-played-name; detail: root.last-played-detail; }
+            StatCard { label: "GAME VERSIONS"; value: root.version-count; detail: "installed"; }
+            StatCard { label: "SERVERS"; value: root.server-count; detail: "installed"; }
+            StatCard { label: "ACTIVE SERVER"; value: root.running-server; detail: "Live stats arrive with the Active Server page"; }
+        }
+        if root.version-count == 0 : EmptyState {
+            vertical-stretch: 1;
+            title: "No game versions yet";
+            body: "Download an older Rust build, or point RustyLauncher at a folder that already has some, and it will show up here.";
+            action: "Go to Download";
+            action-clicked => { root.go-download(); }
+        }
+        if root.version-count > 0 : Rectangle { vertical-stretch: 1; }
+    }
+}

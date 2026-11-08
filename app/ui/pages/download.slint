@@ -1,0 +1,18 @@
+import { Theme } from "../theme.slint";
+import { PageHeader, EmptyState } from "../components.slint";
+
+export component DownloadPage inherits Rectangle {
+    VerticalLayout {
+        padding: Theme.page-padding;
+        spacing: 20px;
+        PageHeader {
+            title: "Download";
+            subtitle: "Get an older Rust build from Steam.";
+        }
+        EmptyState {
+            vertical-stretch: 1;
+            title: "Downloads are coming";
+            body: "Curated builds and manual manifest IDs arrive with the in-process Steam downloader (Phase 4).";
+        }
+    }
+}
