@@ -1,18 +1,203 @@
 import { Theme } from "../theme.slint";
-import { PageHeader, EmptyState } from "../components.slint";
+import { ServerTile, DownloadRow, CuratedTile } from "../types.slint";
+import { PageHeader, Card, AppButton, EmptyState } from "../components.slint";
+import { TextField, CuratedRow } from "../library_components.slint";
+import { DownloadItem } from "../download_components.slint";
+import { ServerCard } from "../server_components.slint";
+
+component SectionTitle inherits Text {
+    color: Theme.text-muted;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+component LinkText inherits Rectangle {
+    in property <string> text;
+    callback clicked();
+    height: 22px;
+    Text {
+        text: root.text;
+        color: ta.has-hover ? Theme.accent-hover : Theme.accent;
+        font-size: 13px;
+        vertical-alignment: center;
+    }
+    ta := TouchArea {
+        mouse-cursor: MouseCursor.pointer;
+        clicked => { root.clicked(); }
+    }
+}
 
 export component ServersPage inherits Rectangle {
-    VerticalLayout {
-        padding: Theme.page-padding;
-        spacing: 20px;
-        PageHeader {
-            title: "Servers";
-            subtitle: "Install, configure and run dedicated servers.";
-        }
-        EmptyState {
-            vertical-stretch: 1;
-            title: "Servers are coming";
-            body: "Pinned and latest server installs arrive in Phase 5; running them in Phase 6.";
+    in property <[ServerTile]> servers;
+    in property <[DownloadRow]> downloads;
+    in property <[CuratedTile]> curated;
+    in property <string> download-dir;
+    in property <string> steam-account;
+    in property <bool> busy;
+    callback install-curated(CuratedTile);
+    callback install-latest(string);
+    callback install-pinned(string, string, string);
+    callback configure(string);
+    callback browse(string);
+    callback mods(string);
+    callback rename(ServerTile);
+    callback update(string);
+    callback delete(ServerTile);
+    callback change-dir();
+    callback sign-in();
+    callback cancel-download(int);
+    callback open-url(string);
+
+    property <string> latest-name;
+    property <string> pinned-name;
+    property <string> pinned-win64;
+    property <string> pinned-common;
+    property <length> gap: 16px;
+    property <length> card-h: 188px;
+    property <length> min-card-w: 330px;
+    property <length> avail: root.width - 2 * Theme.page-padding;
+    property <int> cols: max(1, floor((root.avail + root.gap) / (root.min-card-w + root.gap)));
+    property <length> card-w: (root.avail - (root.cols - 1) * root.gap) / root.cols;
+
+    Flickable {
+        content-height: content.preferred-height;
+        content := VerticalLayout {
+            padding: Theme.page-padding;
+            spacing: 12px;
+            PageHeader {
+                title: "Servers";
+                subtitle: root.servers.length == 0 ? "Install, configure and run dedicated servers." : root.servers.length + (root.servers.length == 1 ? " server installed" : " servers installed");
+            }
+
+            // ---- installed servers ----
+            if root.servers.length == 0 : EmptyState {
+                height: 150px;
+                title: "No servers yet";
+                body: "Install the newest server below (no Steam account needed), or a specific older build.";
+            }
+            if root.servers.length > 0 : Rectangle {
+                height: ceil(root.servers.length / root.cols) * (root.card-h + root.gap);
+                for s[i] in root.servers : ServerCard {
+                    x: mod(i, root.cols) * (root.card-w + root.gap);
+                    y: floor(i / root.cols) * (root.card-h + root.gap);
+                    width: root.card-w;
+                    height: root.card-h;
+                    tile: s;
+                    busy: root.busy;
+                    configure => { root.configure(s.id); }
+                    browse => { root.browse(s.id); }
+                    mods => { root.mods(s.id); }
+                    rename => { root.rename(s); }
+                    update => { root.update(s.id); }
+                    delete => { root.delete(s); }
+                }
+            }
+
+            if root.downloads.length > 0 : VerticalLayout {
+                spacing: 12px;
+                SectionTitle { text: "DOWNLOADS"; }
+                for d in root.downloads : DownloadItem { item: d; cancel => { root.cancel-download(d.id); } }
+            }
+
+            // ---- install ----
+            Rectangle { height: 8px; }
+            SectionTitle { text: "INSTALL A SERVER"; }
+            Card {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 10px;
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Text { text: "Install folder"; width: 110px; color: Theme.text-muted; font-size: 13px; vertical-alignment: center; }
+                        Text {
+                            text: root.download-dir == "" ? "Not chosen yet" : root.download-dir;
+                            color: root.download-dir == "" ? Theme.warning : Theme.text-secondary;
+                            font-size: 13px;
+                            vertical-alignment: center;
+                            overflow: elide;
+                            horizontal-stretch: 1;
+                        }
+                        AppButton { text: "Change"; primary: false; height: 30px; clicked => { root.change-dir(); } }
+                    }
+                    Text {
+                        text: "Servers are saved in a RustServers folder inside it.";
+                        color: Theme.text-faint;
+                        font-size: 12px;
+                    }
+                }
+            }
+            Card {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 10px;
+                    Text { text: "The newest server build"; color: Theme.text-primary; font-size: 15px; font-weight: 700; }
+                    Text {
+                        text: "No Steam account needed. Servers installed this way can be updated to the newest build later with one click, keeping their settings and saves.";
+                        color: Theme.text-tertiary;
+                        font-size: 13px;
+                        wrap: word-wrap;
+                    }
+                    TextField { text <=> root.latest-name; placeholder: "Name (optional)"; }
+                    HorizontalLayout {
+                        alignment: start;
+                        AppButton {
+                            text: "Install newest server";
+                            active: !root.busy;
+                            clicked => { root.install-latest(root.latest-name); }
+                        }
+                    }
+                }
+            }
+            if root.curated.length > 0 : VerticalLayout {
+                spacing: 12px;
+                Rectangle { height: 4px; }
+                SectionTitle { text: "KNOWN BUILDS"; }
+                for b in root.curated : CuratedRow {
+                    build: b;
+                    left-label: "Server files";
+                    right-label: "Shared content";
+                    can-download: !root.busy;
+                    download => { root.install-curated(b); }
+                }
+            }
+            Card {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 10px;
+                    Text { text: "A specific build"; color: Theme.text-primary; font-size: 15px; font-weight: 700; }
+                    Text {
+                        text: "For an older server. Steam only gives older builds to a signed-in account, and both parts must come from the same update: the server files (depot 258551) and the shared content (depot 258554).";
+                        color: Theme.text-tertiary;
+                        font-size: 13px;
+                        wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        spacing: 20px;
+                        LinkText { text: "Server files: depot 258551 on SteamDB"; clicked => { root.open-url("https://steamdb.info/depot/258551/manifests/"); } }
+                        LinkText { text: "Shared content: depot 258554 on SteamDB"; clicked => { root.open-url("https://steamdb.info/depot/258554/manifests/"); } }
+                    }
+                    TextField { text <=> root.pinned-name; placeholder: "Name (optional)"; }
+                    TextField { text <=> root.pinned-win64; placeholder: "Server files manifest ID (depot 258551)"; }
+                    TextField { text <=> root.pinned-common; placeholder: "Shared content manifest ID (depot 258554)"; }
+                    HorizontalLayout {
+                        spacing: 12px;
+                        alignment: start;
+                        AppButton {
+                            text: "Install this build";
+                            active: !root.busy;
+                            clicked => { root.install-pinned(root.pinned-name, root.pinned-win64, root.pinned-common); }
+                        }
+                        if root.steam-account == "" : Text {
+                            text: "Not signed in to Steam.";
+                            color: Theme.warning;
+                            font-size: 13px;
+                            vertical-alignment: center;
+                        }
+                        if root.steam-account == "" : AppButton { text: "Sign in"; primary: false; clicked => { root.sign-in(); } }
+                    }
+                }
+            }
+            Rectangle { height: 16px; }
         }
     }
 }

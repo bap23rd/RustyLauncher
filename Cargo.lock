@@ -4819,13 +4819,20 @@ dependencies = [
 name = "rl-server"
 version = "3.0.0-dev"
 dependencies = [
+ "getrandom 0.3.4",
  "rl-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
 ]
 
 [[package]]
 name = "rl-steam"
 version = "3.0.0-dev"
 dependencies = [
+ "base64 0.22.1",
  "keyring",
  "rl-core",
  "steamroom",

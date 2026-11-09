@@ -1,9 +1,10 @@
 import { Theme } from "theme.slint";
-import { VersionTile, ArchiveTile, PathRow, CuratedTile, DownloadRow, UnfinishedRow } from "types.slint";
+import { VersionTile, ArchiveTile, PathRow, CuratedTile, DownloadRow, UnfinishedRow, ServerTile, ServerConfig, ConfigField } from "types.slint";
 import { NavItem, QuickLaunch, Toast, Atmosphere } from "components.slint";
 import { TaskBanner, VersionMenu } from "library_components.slint";
 import { Modal } from "dialogs.slint";
 import { SignInDialog } from "download_components.slint";
+import { ServerConfigDialog } from "server_components.slint";
 import { TitleBar } from "titlebar.slint";
 import { HomePage } from "pages/home.slint";
 import { LibraryPage } from "pages/library.slint";
@@ -11,7 +12,7 @@ import { DownloadPage } from "pages/download.slint";
 import { ServersPage } from "pages/servers.slint";
 import { SettingsPage } from "pages/settings.slint";
 
-export { VersionTile, ArchiveTile, PathRow, CuratedTile, DownloadRow, UnfinishedRow }
+export { VersionTile, ArchiveTile, PathRow, CuratedTile, DownloadRow, UnfinishedRow, ServerTile, ServerConfig, ConfigField }
 
 export component App inherits Window {
     title: "RustyLauncher";
@@ -54,6 +55,16 @@ export component App inherits Window {
     in property <string> data-dir;
     in property <string> app-version;
 
+    // ---- Servers ----
+    in property <[ServerTile]> servers;
+    in property <[CuratedTile]> curated-servers;
+    // The server settings dialog.
+    in-out property <bool> config-open;
+    in-out property <string> config-title;
+    in-out property <string> config-error;
+    in-out property <string> config-server-id;
+    in-out property <ServerConfig> server-cfg;
+
     // ---- Steam account and downloads ----
     // Empty when not signed in.
     in property <string> steam-account;
@@ -64,8 +75,8 @@ export component App inherits Window {
     in property <bool> download-active;
     in property <string> download-text;
     in property <float> download-progress: -1;
-    // The Download page shows the download in full, so the strip is only for the other pages.
-    property <bool> show-download-strip: root.download-active && root.page != "download";
+    // The Download and Servers pages show downloads in full, so the strip is only for the other pages.
+    property <bool> show-download-strip: root.download-active && root.page != "download" && root.page != "servers";
     // Sign-in dialog. State: "form" | "working" | "guard" | "mobile" | "error".
     in-out property <bool> signin-open;
     in-out property <string> signin-state: "form";
@@ -107,6 +118,14 @@ export component App inherits Window {
     callback rescan();
     callback add-install-path();
     callback cancel-task();
+    callback install-server-latest(string);
+    callback install-server-pinned(string, string, string);
+    callback configure-server(string);
+    callback save-server-config();
+    callback new-server-password();
+    callback browse-server(string);
+    callback server-mods(string);
+    callback update-server(string);
     callback signin-submit(string, string);
     callback signin-code-submit(string);
     callback signin-cancel();
@@ -282,7 +301,38 @@ export component App inherits Window {
                                 "Download", false);
                         }
                     }
-                    if root.page == "servers" : ServersPage { width: parent.width; height: parent.height; }
+                    if root.page == "servers" : ServersPage {
+                        width: parent.width;
+                        height: parent.height;
+                        servers: root.servers;
+                        curated: root.curated-servers;
+                        downloads: root.downloads;
+                        download-dir: root.download-dir;
+                        steam-account: root.steam-account;
+                        busy: root.task-active || root.download-active;
+                        install-curated(b) => {
+                            root.ask("download-server", b.client + "|" + b.bundle + "|" + b.title, "Install " + b.title + "?",
+                                (root.download-dir == "" ? "You have not chosen an install folder yet. Choose one first." : "It will be saved in " + root.download-dir + ".")
+                                + "\n\nThe server is about 5 GB. Older builds need you to be signed in to Steam.",
+                                "Install", false);
+                        }
+                        install-latest(name) => { root.install-server-latest(name); }
+                        install-pinned(name, w, c) => { root.install-server-pinned(name, w, c); }
+                        configure(id) => { root.configure-server(id); }
+                        browse(id) => { root.browse-server(id); }
+                        mods(id) => { root.server-mods(id); }
+                        update(id) => { root.update-server(id); }
+                        rename(s) => { root.ask-text("rename-server", s.id, "Rename server", s.name, "Rename"); }
+                        delete(s) => {
+                            root.ask("delete-server", s.id, "Delete " + s.name + "?",
+                                "This permanently deletes the server and everything in its folder, including its world saves. It cannot be undone.",
+                                "Delete", true);
+                        }
+                        change-dir => { root.change-download-dir(); }
+                        sign-in => { root.open-signin(); }
+                        cancel-download(id) => { root.cancel-download(id); }
+                        open-url(u) => { root.open-url(u); }
+                    }
                     if root.page == "settings" : SettingsPage {
                         width: parent.width;
                         height: parent.height;
@@ -383,6 +433,18 @@ export component App inherits Window {
             root.dialog-confirmed(root.dialog-kind, root.dialog-arg, root.dialog-input);
         }
         cancelled => { root.dialog-open = false; }
+    }
+
+    ServerConfigDialog {
+        width: parent.width;
+        height: parent.height;
+        open: root.config-open;
+        title: root.config-title;
+        error: root.config-error;
+        cfg <=> root.server-cfg;
+        save => { root.save-server-config(); }
+        cancel => { root.config-open = false; }
+        new-password => { root.new-server-password(); }
     }
 
     SignInDialog {

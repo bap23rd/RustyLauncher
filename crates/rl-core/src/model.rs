@@ -179,6 +179,28 @@ impl State {
         true
     }
 
+    pub fn server_by_id(&self, id: &str) -> Option<&Server> {
+        self.servers.iter().find(|s| s.id == id)
+    }
+
+    /// Add a server, or replace the entry at the same folder (an update changes its manifests).
+    pub fn upsert_server(&mut self, s: Server) {
+        if let Some(existing) = self
+            .servers
+            .iter_mut()
+            .find(|x| same_path(&x.install_path, &s.install_path))
+        {
+            *existing = s;
+        } else {
+            self.servers.push(s);
+        }
+    }
+
+    pub fn remove_server(&mut self, id: &str) -> Option<Server> {
+        let i = self.servers.iter().position(|s| s.id == id)?;
+        Some(self.servers.remove(i))
+    }
+
     /// Add an install path or move it to the front of the recent list.
     pub fn touch_install_path(&mut self, path: PathBuf, now_unix: i64) {
         if let Some(p) = self
@@ -238,6 +260,29 @@ mod tests {
         s.mark_played("a", true, 1);
         s.remove_version("a");
         assert_eq!(s.settings.last_played_version, None);
+    }
+
+    #[test]
+    fn servers_are_added_replaced_and_removed() {
+        let mut s = State::default();
+        let srv = |id: &str, manifest: &str| Server {
+            id: id.into(),
+            name: "S".into(),
+            manifest_id: Some(manifest.into()),
+            install_path: format!("D:/RustServers/{id}").into(),
+            ..Default::default()
+        };
+        s.upsert_server(srv("a", "1"));
+        s.upsert_server(srv("a", "2")); // an update: same folder, new manifest
+        assert_eq!(s.servers.len(), 1);
+        assert_eq!(
+            s.server_by_id("a").unwrap().manifest_id.as_deref(),
+            Some("2")
+        );
+        s.upsert_server(srv("b", "3"));
+        assert!(s.remove_server("a").is_some());
+        assert!(s.remove_server("a").is_none());
+        assert_eq!(s.servers.len(), 1);
     }
 
     #[test]

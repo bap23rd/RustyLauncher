@@ -7,7 +7,7 @@
 use crate::error::{Error, Result};
 use crate::fsutil::write_atomic;
 use crate::model::{CLIENT_BUNDLES_DEPOT, CLIENT_DEPOT};
-use crate::paths::{ARCHIVE_DIR_NAME, TEMP_BUNDLES_DIR_NAME, versions_dir};
+use crate::paths::{ARCHIVE_DIR_NAME, TEMP_BUNDLES_DIR_NAME, servers_dir, versions_dir};
 use crate::sidecar::{VersionSidecar, write_version_sidecar};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -18,8 +18,12 @@ pub const INSTALL_MARKER: &str = ".rustylauncher-installing.json";
 #[serde(rename_all = "camelCase", default)]
 pub struct InstallMarker {
     pub name: String,
+    /// The main manifest: the game files for a client build, the win64 depot for a server.
     pub client_manifest: String,
+    /// The second manifest: the content bundles for a client build, the common depot for a server.
     pub bundles_manifest: String,
+    /// `""` (a game client), `"server-pinned"`, `"server-latest"` or `"server-update"`.
+    pub kind: String,
 }
 
 pub fn write_marker(dir: &Path, marker: &InstallMarker) -> Result<()> {
@@ -59,6 +63,19 @@ pub fn finish_install(dir: &Path, marker: &InstallMarker, download_date_iso: &st
     })
 }
 
+/// A download finished that needs no sidecar from us (servers write their own settings file).
+pub fn remove_marker(dir: &Path) -> Result<()> {
+    std::fs::remove_file(dir.join(INSTALL_MARKER)).map_err(|e| Error::Io {
+        path: dir.join(INSTALL_MARKER),
+        source: e,
+    })
+}
+
+/// Where a server's files go: `<install path>\RustServers\<win64 manifest>`.
+pub fn server_install_dir(install_path: &Path, manifest: &str) -> PathBuf {
+    servers_dir(install_path).join(manifest)
+}
+
 /// Where a build's files go: `<install path>\RustyLauncherVersions\<client manifest>`.
 pub fn install_dir(install_path: &Path, client_manifest: &str) -> PathBuf {
     versions_dir(install_path).join(client_manifest)
@@ -73,19 +90,21 @@ pub fn valid_manifest_id(id: &str) -> bool {
 pub fn find_unfinished(install_paths: &[PathBuf]) -> Vec<(PathBuf, InstallMarker)> {
     let mut out = Vec::new();
     for base in install_paths {
-        let Ok(entries) = std::fs::read_dir(versions_dir(base)) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().into_owned();
-            if name.starts_with('.')
-                || name.eq_ignore_ascii_case(ARCHIVE_DIR_NAME)
-                || name.eq_ignore_ascii_case(TEMP_BUNDLES_DIR_NAME)
-            {
+        for folder in [versions_dir(base), servers_dir(base)] {
+            let Ok(entries) = std::fs::read_dir(&folder) else {
                 continue;
-            }
-            if let Some(marker) = read_marker(&entry.path()) {
-                out.push((entry.path(), marker));
+            };
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                if name.starts_with('.')
+                    || name.eq_ignore_ascii_case(ARCHIVE_DIR_NAME)
+                    || name.eq_ignore_ascii_case(TEMP_BUNDLES_DIR_NAME)
+                {
+                    continue;
+                }
+                if let Some(marker) = read_marker(&entry.path()) {
+                    out.push((entry.path(), marker));
+                }
             }
         }
     }
@@ -133,6 +152,7 @@ mod tests {
             name: "July 2023".into(),
             client_manifest: "2486676083669216181".into(),
             bundles_manifest: "3732538865539399361".into(),
+            ..Default::default()
         };
         write_marker(dir.path(), &m).unwrap();
         assert!(has_marker(dir.path()));
@@ -177,10 +197,29 @@ mod tests {
                 name: "Half".into(),
                 client_manifest: "2".into(),
                 bundles_manifest: "3".into(),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        // an unfinished server download is found too
+        let server = server_install_dir(&base, "9");
+        std::fs::create_dir_all(&server).unwrap();
+        write_marker(
+            &server,
+            &InstallMarker {
+                name: "Srv".into(),
+                kind: "server-latest".into(),
+                ..Default::default()
             },
         )
         .unwrap();
         let found = find_unfinished(&[base]);
+        assert_eq!(found.len(), 2);
+        assert!(found.iter().any(|(_, m)| m.kind == "server-latest"));
+        let found: Vec<_> = found
+            .into_iter()
+            .filter(|(_, m)| m.kind.is_empty())
+            .collect();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].1.name, "Half");
         assert_eq!(found[0].0, partial);

@@ -44,3 +44,36 @@ export struct UnfinishedRow {
     name: string,
     detail: string,
 }
+
+// One installed dedicated server.
+export struct ServerTile {
+    id: string,
+    name: string,
+    // "latest" or "pinned"
+    kind: string,
+    manifest: string,
+    created: string,
+    oxide: bool,
+    missing: bool,
+}
+
+// A launch setting with an on/off switch.
+export struct ConfigField {
+    enabled: bool,
+    value: string,
+}
+
+// The server launch settings (V2's fields).
+export struct ServerConfig {
+    hostname: ConfigField,
+    identity: ConfigField,
+    port: ConfigField,
+    rcon-port: ConfigField,
+    rcon-password: ConfigField,
+    rcon-web: bool,
+    max-players: ConfigField,
+    world-size: ConfigField,
+    seed: ConfigField,
+    save-interval: ConfigField,
+    custom-args: string,
+}

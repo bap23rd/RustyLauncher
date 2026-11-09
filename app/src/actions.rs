@@ -132,6 +132,17 @@ pub fn dialog_confirmed(kind: &str, arg: &str, text: &str) {
         "delete-archive" => delete_archive(&ctx, arg),
         "remove-path" => remove_install_path(&ctx, arg),
         "download" => crate::downloads::start_from_dialog(arg),
+        "download-server" => {
+            let mut p = arg.splitn(3, '|');
+            let (win64, common, name) = (
+                p.next().unwrap_or("").to_string(),
+                p.next().unwrap_or("").to_string(),
+                p.next().unwrap_or("").to_string(),
+            );
+            crate::downloads::start_server_pinned(&name, &win64, &common);
+        }
+        "rename-server" => crate::servers::rename(&ctx, arg, text),
+        "delete-server" => crate::servers::delete(&ctx, arg),
         "quit" => ctx.with_app(|a| {
             let _ = a.hide();
         }),
@@ -417,7 +428,7 @@ fn delete_archive(ctx: &Ctx, path: &str) {
 
 /// Open a web page in the default browser. Only `https://steamdb.info/` links are used by the app.
 pub fn open_url(url: &str) {
-    if !url.starts_with("https://steamdb.info/") {
+    if !(url.starts_with("https://steamdb.info/") || url.starts_with("https://umod.org/")) {
         tracing::warn!(url, "refusing to open an unexpected link");
         return;
     }
@@ -502,18 +513,50 @@ pub fn scan_in_background(quiet: bool) {
             .iter()
             .flat_map(|d| scan::scan_versions(d).unwrap_or_default())
             .collect();
+        let servers: Vec<rl_core::model::Server> = dirs
+            .iter()
+            .flat_map(|d| rl_server::scan_servers(d))
+            .collect();
         let _ = slint::invoke_from_event_loop(move || {
             let ctx = ctx::get();
             let added = scan::merge_versions(&mut ctx.state.borrow_mut(), found);
-            if added > 0 {
+            // Servers already known (by folder) are left as they are.
+            let added_servers = {
+                let mut state = ctx.state.borrow_mut();
+                let mut n = 0;
+                for s in servers {
+                    if !state
+                        .servers
+                        .iter()
+                        .any(|x| x.install_path == s.install_path)
+                    {
+                        state.servers.push(s);
+                        n += 1;
+                    }
+                }
+                n
+            };
+            if added > 0 || added_servers > 0 {
                 ctx.save();
                 ctx.refresh();
             }
-            if added > 0 {
-                let s = if added == 1 { "" } else { "s" };
-                ctx.toast(&format!("Found {added} new version{s}."), "success");
+            if added > 0 || added_servers > 0 {
+                let mut parts = Vec::new();
+                if added > 0 {
+                    parts.push(format!(
+                        "{added} new version{}",
+                        if added == 1 { "" } else { "s" }
+                    ));
+                }
+                if added_servers > 0 {
+                    parts.push(format!(
+                        "{added_servers} new server{}",
+                        if added_servers == 1 { "" } else { "s" }
+                    ));
+                }
+                ctx.toast(&format!("Found {}.", parts.join(" and ")), "success");
             } else if !quiet {
-                ctx.toast("No new versions found.", "info");
+                ctx.toast("Nothing new found.", "info");
             }
         });
     });
@@ -581,6 +624,7 @@ pub fn load_curated(ctx: &Ctx) {
     let other = curated::load_cached(&ctx.paths, CuratedKind::Other);
     let have_cache = !rec.is_empty() || !other.is_empty();
     *ctx.curated.borrow_mut() = (rec, other);
+    *ctx.curated_servers.borrow_mut() = curated::load_servers(&ctx.paths);
     ctx.refresh_curated(if have_cache {
         "Checking for updates..."
     } else {
@@ -596,9 +640,20 @@ pub fn load_curated(ctx: &Ctx) {
         };
         let rec = fetch(CuratedKind::Recommended);
         let other = fetch(CuratedKind::Other);
+        // The server list may not be published yet; a failure here is not worth a warning on the page.
+        let servers = fetch_text(&curated::servers_url()).and_then(|text| {
+            curated::store_fetched_servers(&paths, &text).map_err(|e| e.to_string())
+        });
         let _ = slint::invoke_from_event_loop(move || {
             let ctx = ctx::get();
             let ok = rec.is_ok() && other.is_ok();
+            match servers {
+                Ok(list) if !list.is_empty() => *ctx.curated_servers.borrow_mut() = list,
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::info!(error = %e, "server build list not fetched; using the saved or bundled one")
+                }
+            }
             if let Err(e) = &rec {
                 tracing::warn!(error = %e, "could not fetch versionRL.json");
             }

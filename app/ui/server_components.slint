@@ -1,0 +1,184 @@
+import { Theme } from "theme.slint";
+import { ServerTile, ServerConfig, ConfigField } from "types.slint";
+import { AppButton, Card, Pill } from "components.slint";
+import { IconButton, TextField } from "library_components.slint";
+
+// One installed server.
+export component ServerCard inherits Card {
+    in property <ServerTile> tile;
+    in property <bool> busy;
+    callback configure();
+    callback browse();
+    callback mods();
+    callback rename();
+    callback update();
+    callback delete();
+
+    VerticalLayout {
+        padding: 16px;
+        padding-bottom: 10px;
+        spacing: 4px;
+        HorizontalLayout {
+            spacing: 8px;
+            Text { text: root.tile.name; color: Theme.text-primary; font-size: 16px; font-weight: 700; overflow: elide; horizontal-stretch: 1; }
+            if root.tile.missing : Pill { text: "FILES NOT FOUND"; tint: Theme.warning; }
+        }
+        Text { text: "Build " + root.tile.manifest; color: Theme.text-faint; font-size: 12px; overflow: elide; }
+        Text { text: root.tile.created == "" ? "Install date unknown" : "Installed " + root.tile.created; color: Theme.text-muted; font-size: 12px; }
+        Rectangle { vertical-stretch: 1; }
+        HorizontalLayout {
+            spacing: 8px;
+            Pill { text: root.tile.kind == "latest" ? "LATEST" : "PINNED"; tint: root.tile.kind == "latest" ? Theme.info : Theme.text-tertiary; }
+            Pill { text: root.tile.oxide ? "OXIDE" : "NO OXIDE"; tint: root.tile.oxide ? Theme.success : Theme.text-disabled; }
+            Rectangle { horizontal-stretch: 1; }
+        }
+        HorizontalLayout {
+            spacing: 4px;
+            AppButton {
+                text: "Configure";
+                height: 30px;
+                min-width: 92px;
+                active: !root.tile.missing;
+                clicked => { root.configure(); }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            IconButton { icon: @image-url("icons/folder-open.svg"); active: !root.tile.missing; clicked => { root.browse(); } }
+            IconButton { icon: @image-url("icons/puzzle-piece.svg"); active: !root.tile.missing; clicked => { root.mods(); } }
+            if root.tile.kind == "latest" : IconButton { icon: @image-url("icons/arrow-clockwise.svg"); active: !root.busy && !root.tile.missing; clicked => { root.update(); } }
+            IconButton { icon: @image-url("icons/pencil-simple.svg"); active: !root.busy; clicked => { root.rename(); } }
+            IconButton { icon: @image-url("icons/trash.svg"); danger: true; active: !root.busy; clicked => { root.delete(); } }
+        }
+    }
+}
+
+component CheckBox inherits Rectangle {
+    in-out property <bool> checked;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent : Theme.accent-border;
+    background: root.checked ? Theme.accent : #00000066;
+    animate background { duration: 100ms; }
+    if root.checked : Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 14px;
+        height: 14px;
+        source: @image-url("icons/check.svg");
+        colorize: white;
+    }
+    TouchArea {
+        mouse-cursor: MouseCursor.pointer;
+        clicked => { root.checked = !root.checked; }
+    }
+}
+
+// A launch setting: a switch (include it or not) and its value.
+component FieldRow inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> placeholder;
+    in property <string> hint;
+    in-out property <bool> enabled;
+    in-out property <string> value;
+    spacing: 12px;
+    Rectangle {
+        width: 22px;
+        CheckBox { y: 8px; checked <=> root.enabled; }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        spacing: 4px;
+        Text { text: root.label; color: root.enabled ? Theme.text-secondary : Theme.text-muted; font-size: 13px; font-weight: 600; }
+        TextField {
+            text <=> root.value;
+            placeholder: root.placeholder;
+            read-only: !root.enabled;
+            opacity: root.enabled ? 1.0 : 0.5;
+        }
+        if root.hint != "" : Text { text: root.hint; color: Theme.text-faint; font-size: 11px; wrap: word-wrap; }
+    }
+}
+
+// The server launch settings (V2's dialog, same fields).
+export component ServerConfigDialog inherits Rectangle {
+    in property <bool> open;
+    in property <string> title;
+    in property <string> error;
+    in-out property <ServerConfig> cfg;
+    callback save();
+    callback cancel();
+    callback new-password();
+
+    visible: root.open;
+    Rectangle {
+        background: #000000b3;
+        TouchArea { }
+    }
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 600px;
+        height: Math.min(parent.height - 60px, 660px);
+        background: Theme.surface-2;
+        border-radius: Theme.radius-card;
+        border-width: 1px;
+        border-color: Theme.accent-border;
+        TouchArea { }
+        VerticalLayout {
+            padding: 24px;
+            padding-bottom: 20px;
+            spacing: 12px;
+            Text { text: root.title; color: Theme.text-primary; font-size: 18px; font-weight: 700; overflow: elide; }
+            Text {
+                text: "Tick a setting to include it in the launch command. These are saved with the server and used to write RustServer.bat, so you can still start it without the launcher.";
+                color: Theme.text-tertiary;
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+            Flickable {
+                vertical-stretch: 1;
+                content-height: fields.preferred-height;
+                fields := VerticalLayout {
+                    spacing: 14px;
+                    padding-right: 8px;
+                    FieldRow { label: "Server name"; placeholder: "My Rust Server"; enabled <=> root.cfg.hostname.enabled; value <=> root.cfg.hostname.value; }
+                    FieldRow { label: "Save folder name (identity)"; placeholder: "rustyserver"; hint: "Saves go in server/<this name>. Letters, digits, - and _ only."; enabled <=> root.cfg.identity.enabled; value <=> root.cfg.identity.value; }
+                    FieldRow { label: "Server port"; placeholder: "28015"; enabled <=> root.cfg.port.enabled; value <=> root.cfg.port.value; }
+                    FieldRow { label: "RCON port"; placeholder: "28016"; enabled <=> root.cfg.rcon-port.enabled; value <=> root.cfg.rcon-port.value; }
+                    FieldRow { label: "RCON password"; placeholder: "a long random password"; hint: "Anyone who knows this can run commands on your server. Keep it private."; enabled <=> root.cfg.rcon-password.enabled; value <=> root.cfg.rcon-password.value; }
+                    HorizontalLayout {
+                        padding-left: 34px;
+                        alignment: start;
+                        AppButton { text: "Make a new random password"; primary: false; height: 30px; clicked => { root.new-password(); } }
+                    }
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Rectangle { width: 22px; CheckBox { y: 2px; checked <=> root.cfg.rcon-web; } }
+                        VerticalLayout {
+                            spacing: 2px;
+                            Text { text: "Web RCON (rcon.web 1)"; color: Theme.text-secondary; font-size: 13px; font-weight: 600; }
+                            Text { text: "Needed for the launcher's console and live stats."; color: Theme.text-faint; font-size: 11px; }
+                        }
+                    }
+                    FieldRow { label: "Max players"; placeholder: "50"; enabled <=> root.cfg.max-players.enabled; value <=> root.cfg.max-players.value; }
+                    FieldRow { label: "World size"; placeholder: "3000"; hint: "1000 to 6000."; enabled <=> root.cfg.world-size.enabled; value <=> root.cfg.world-size.value; }
+                    FieldRow { label: "Map seed"; placeholder: "12345"; enabled <=> root.cfg.seed.enabled; value <=> root.cfg.seed.value; }
+                    FieldRow { label: "Save interval (seconds)"; placeholder: "300"; enabled <=> root.cfg.save-interval.enabled; value <=> root.cfg.save-interval.value; }
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: "Custom arguments"; color: Theme.text-secondary; font-size: 13px; font-weight: 600; }
+                        TextField { text <=> root.cfg.custom-args; placeholder: "e.g. +server.tickrate 30 +server.pve true"; }
+                    }
+                }
+            }
+            if root.error != "" : Text { text: root.error; color: Theme.error; font-size: 13px; wrap: word-wrap; }
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: end;
+                AppButton { text: "Cancel"; primary: false; clicked => { root.cancel(); } }
+                AppButton { text: "Save"; clicked => { root.save(); } }
+            }
+        }
+    }
+}

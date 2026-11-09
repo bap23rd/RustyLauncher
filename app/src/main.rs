@@ -5,6 +5,7 @@ mod actions;
 mod ctx;
 mod downloads;
 mod format;
+mod servers;
 mod single_instance;
 mod steam;
 mod tasks;
@@ -74,6 +75,7 @@ fn main() {
         archives: RefCell::new(Vec::new()),
         usage: RefCell::new(HashMap::new()),
         curated: RefCell::new(cached),
+        curated_servers: RefCell::new(rl_core::curated::load_servers(&paths)),
         engine: rl_steam::Engine::new(),
         store: Arc::new(rl_steam::CredentialManager),
         signin: RefCell::new(None),
@@ -183,6 +185,16 @@ fn wire_callbacks(app: &App) {
     app.on_rescan(actions::rescan);
     app.on_add_install_path(actions::add_install_path);
     app.on_cancel_task(actions::cancel_task);
+    app.on_install_server_latest(|name| downloads::start_server_latest(&name));
+    app.on_install_server_pinned(|name, win64, common| {
+        downloads::start_server_pinned(&name, &win64, &common)
+    });
+    app.on_configure_server(|id| servers::configure(&id));
+    app.on_save_server_config(servers::save_config);
+    app.on_new_server_password(servers::new_password);
+    app.on_browse_server(|id| servers::browse(&id));
+    app.on_server_mods(|id| servers::mods(&id));
+    app.on_update_server(|id| downloads::update_server(&id));
     app.on_signin_submit(|user, pass| steam::begin_sign_in(&user, &pass));
     app.on_signin_code_submit(|code| steam::submit_code(&code));
     app.on_signin_cancel(steam::cancel_sign_in);

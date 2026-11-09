@@ -1,0 +1,10 @@
+{
+  "servers": [
+    {
+      "title": "Newest known server build (Nov 2026)",
+      "serverManifest": "754785054187022296",
+      "serverCommonManifest": "8417394343345843224",
+      "versionDate": "07-11-2026"
+    }
+  ]
+}

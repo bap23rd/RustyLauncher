@@ -16,7 +16,7 @@
 pub mod archive;
 pub mod curated;
 pub mod error;
-mod fsutil;
+pub mod fsutil;
 pub mod install;
 pub mod launch;
 pub mod library;

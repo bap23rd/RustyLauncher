@@ -151,3 +151,104 @@ mod tests {
         );
     }
 }
+
+// ---------------------------------------------------------------- server builds
+
+/// A curated dedicated-server build (`versionServers.json`, key `servers`). This is a new file:
+/// V1 and V2 never read it, so it can use its own field names.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CuratedServerBuild {
+    pub title: String,
+    /// Manifest of the win64 server depot (258551).
+    pub server_manifest: String,
+    /// Manifest of the shared content depot (258554).
+    pub server_common_manifest: String,
+    pub version_date: String,
+}
+
+pub const SERVERS_FILE: &str = "versionServers.json";
+
+/// The list shipped inside the program, used until a newer one has been fetched.
+pub const BUNDLED_SERVERS: &str = include_str!("../../../resources/versionServers.json");
+
+pub fn servers_url() -> String {
+    format!("{BASE_URL}{SERVERS_FILE}")
+}
+
+pub fn parse_servers(json: &str) -> Result<Vec<CuratedServerBuild>> {
+    let path = std::path::PathBuf::from(SERVERS_FILE);
+    let value: serde_json::Value = serde_json::from_str(json).map_err(|e| Error::Json {
+        path: path.clone(),
+        source: e,
+    })?;
+    let list = value
+        .get("servers")
+        .cloned()
+        .unwrap_or(serde_json::Value::Array(vec![]));
+    let builds: Vec<CuratedServerBuild> =
+        serde_json::from_value(list).map_err(|e| Error::Json { path, source: e })?;
+    Ok(builds
+        .into_iter()
+        .filter(|b| {
+            !b.server_manifest.trim().is_empty() && !b.server_common_manifest.trim().is_empty()
+        })
+        .collect())
+}
+
+/// The cached list if there is one, else the bundled one.
+pub fn load_servers(paths: &AppPaths) -> Vec<CuratedServerBuild> {
+    std::fs::read_to_string(paths.cache_dir().join(SERVERS_FILE))
+        .ok()
+        .and_then(|t| parse_servers(&t).ok())
+        .filter(|l| !l.is_empty())
+        .or_else(|| parse_servers(BUNDLED_SERVERS).ok())
+        .unwrap_or_default()
+}
+
+pub fn store_fetched_servers(paths: &AppPaths, json: &str) -> Result<Vec<CuratedServerBuild>> {
+    let builds = parse_servers(json)?;
+    write_atomic(&paths.cache_dir().join(SERVERS_FILE), json.as_bytes())?;
+    Ok(builds)
+}
+
+#[cfg(test)]
+mod server_tests {
+    use super::*;
+
+    #[test]
+    fn the_bundled_server_list_parses_and_has_a_build() {
+        let list = parse_servers(BUNDLED_SERVERS).unwrap();
+        assert!(!list.is_empty());
+        assert!(list[0].server_manifest.bytes().all(|b| b.is_ascii_digit()));
+        assert!(
+            list[0]
+                .server_common_manifest
+                .bytes()
+                .all(|b| b.is_ascii_digit())
+        );
+    }
+
+    #[test]
+    fn incomplete_entries_are_skipped_and_the_cache_wins_over_the_bundle() {
+        let json = r#"{ "servers": [
+            { "title": "ok", "serverManifest": "1", "serverCommonManifest": "2", "versionDate": "x" },
+            { "title": "missing common", "serverManifest": "1" }
+        ] }"#;
+        assert_eq!(parse_servers(json).unwrap().len(), 1);
+        let dir = tempfile::tempdir().unwrap();
+        let paths = AppPaths::at(dir.path());
+        assert_eq!(
+            load_servers(&paths)[0].title,
+            parse_servers(BUNDLED_SERVERS).unwrap()[0].title
+        );
+        store_fetched_servers(&paths, json).unwrap();
+        assert_eq!(load_servers(&paths)[0].title, "ok");
+        assert!(store_fetched_servers(&paths, "<html>").is_err());
+        assert_eq!(
+            load_servers(&paths)[0].title,
+            "ok",
+            "a bad download must not replace a good cache"
+        );
+    }
+}

@@ -1,6 +1,6 @@
 [package]
 name = "rl-server"
-description = "RustyLauncher rl-server (placeholder, filled in by a later phase)"
+description = "RustyLauncher dedicated server support: launch config, .bat generation, scanning, Oxide detection"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,3 +9,11 @@ repository.workspace = true
 
 [dependencies]
 rl-core = { path = "../rl-core" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+getrandom = "0.3"
+
+[dev-dependencies]
+tempfile.workspace = true

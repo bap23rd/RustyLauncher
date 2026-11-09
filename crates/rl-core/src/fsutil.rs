@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 /// Write a file so a crash or power cut can never leave it half-written:
 /// write to `<name>.tmp` in the same folder, flush it to disk, then rename over the target.
-pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
+pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| Error::io(parent, e))?;
     }

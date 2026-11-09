@@ -115,6 +115,8 @@ export component ArchiveRow inherits Card {
 export component CuratedRow inherits Card {
     in property <CuratedTile> build;
     in property <bool> can-download: true;
+    in property <string> left-label: "Client";
+    in property <string> right-label: "Bundles";
     callback download();
     height: 64px;
     HorizontalLayout {
@@ -125,7 +127,7 @@ export component CuratedRow inherits Card {
             horizontal-stretch: 1;
             alignment: center;
             Text { text: root.build.title; color: Theme.text-primary; font-size: 15px; font-weight: 700; overflow: elide; }
-            Text { text: "Client " + root.build.client + "  ·  Bundles " + root.build.bundle; color: Theme.text-faint; font-size: 12px; overflow: elide; }
+            Text { text: root.left-label + " " + root.build.client + "  ·  " + root.right-label + " " + root.build.bundle; color: Theme.text-faint; font-size: 12px; overflow: elide; }
         }
         Text { text: root.build.date; color: Theme.text-muted; font-size: 13px; vertical-alignment: center; }
         Rectangle {
@@ -147,6 +149,8 @@ export component TextField inherits Rectangle {
     in property <string> placeholder;
     // Hide the typed characters (passwords).
     in property <bool> password;
+    // Show the text but do not let it be edited (used when a setting is switched off).
+    in property <bool> read-only;
     callback accepted();
     public function focus-input() { input.focus(); }
 
@@ -166,6 +170,7 @@ export component TextField inherits Rectangle {
         selection-background-color: Theme.accent;
         selection-foreground-color: white;
         input-type: root.password ? InputType.password : InputType.text;
+        read-only: root.read-only;
         text <=> root.text;
         accepted => { root.accepted(); }
     }

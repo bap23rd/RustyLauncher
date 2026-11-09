@@ -5,7 +5,7 @@
 
 use crate::{App, ArchiveTile, CuratedTile, PathRow, VersionTile, format};
 use rl_core::archive::Archive;
-use rl_core::curated::CuratedBuild;
+use rl_core::curated::{CuratedBuild, CuratedServerBuild};
 use rl_core::launch::{has_client, has_eac};
 use rl_core::library::format_bytes;
 use rl_core::model::{State, Version};
@@ -31,6 +31,7 @@ pub struct Ctx {
     /// Disk usage text per install path (filled in by a background thread).
     pub usage: RefCell<HashMap<String, String>>,
     pub curated: RefCell<(Vec<CuratedBuild>, Vec<CuratedBuild>)>,
+    pub curated_servers: RefCell<Vec<CuratedServerBuild>>,
     /// Talks to Steam. Its runtime starts on first use.
     pub engine: rl_steam::Engine,
     /// Where the Steam sign-in token is kept (Windows Credential Manager).
@@ -134,6 +135,9 @@ impl Ctx {
             tiles.sort_by_key(|t| t.name.to_lowercase());
             app.set_versions(ModelRc::from(Rc::new(VecModel::from(tiles))));
             app.set_server_count(state.servers.len() as i32);
+            app.set_servers(ModelRc::from(Rc::new(VecModel::from(
+                crate::servers::tiles(&state),
+            ))));
             app.set_launch_with_eac(state.settings.launch_with_eac);
             app.set_steam_account(
                 state
@@ -206,7 +210,19 @@ impl Ctx {
                 .collect();
             ModelRc::from(Rc::new(VecModel::from(v)))
         };
+        let servers: Vec<CuratedTile> = self
+            .curated_servers
+            .borrow()
+            .iter()
+            .map(|b| CuratedTile {
+                title: b.title.as_str().into(),
+                date: b.version_date.as_str().into(),
+                client: b.server_manifest.as_str().into(),
+                bundle: b.server_common_manifest.as_str().into(),
+            })
+            .collect();
         self.with_app(|app| {
+            app.set_curated_servers(ModelRc::from(Rc::new(VecModel::from(servers))));
             app.set_curated_recommended(to_tiles(rec));
             app.set_curated_other(to_tiles(other));
             app.set_curated_status(status.into());
