@@ -17,6 +17,7 @@ keyring = { version = "3", features = ["windows-native"] }
 zip = { version = "7.3.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 thiserror.workspace = true
 tracing.workspace = true
+base64 = "0.22"
 
 [dev-dependencies]
 tempfile.workspace = true

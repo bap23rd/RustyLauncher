@@ -89,6 +89,22 @@ fn main() {
 
     wire_callbacks(&app);
 
+    // Debug builds only: `RL_DEMO_SIGNIN=phone` (or `phone-only`) opens the sign-in dialog in its Steam Guard state.
+    #[cfg(debug_assertions)]
+    if let Ok(mode) = std::env::var("RL_DEMO_SIGNIN") {
+        app.set_signin_state("guard".into());
+        app.set_signin_phone(true);
+        app.set_signin_guard_kind(
+            if mode == "phone-only" {
+                "none"
+            } else {
+                "authenticator"
+            }
+            .into(),
+        );
+        app.set_signin_open(true);
+    }
+
     // Debug builds only: `RL_DEMO_DOWNLOAD=1` shows a made-up running download, for checking its layout.
     #[cfg(debug_assertions)]
     if std::env::var_os("RL_DEMO_DOWNLOAD").is_some() {

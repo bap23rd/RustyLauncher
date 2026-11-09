@@ -71,6 +71,7 @@ export component App inherits Window {
     in-out property <string> signin-state: "form";
     in-out property <string> signin-message;
     in-out property <string> signin-guard-kind: "authenticator";
+    in-out property <bool> signin-phone;
     in-out property <string> signin-username;
     in-out property <string> signin-password;
     in-out property <string> signin-code;
@@ -391,6 +392,7 @@ export component App inherits Window {
         state: root.signin-state;
         message: root.signin-message;
         guard-kind: root.signin-guard-kind;
+        phone: root.signin-phone;
         username <=> root.signin-username;
         password <=> root.signin-password;
         code <=> root.signin-code;

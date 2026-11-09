@@ -96,19 +96,21 @@ fn set_state(ctx: &Ctx, state: &str, message: &str, guard: Option<&str>) {
 fn on_event(event: SignInEvent) {
     let ctx = ctx::get();
     match event {
-        SignInEvent::NeedGuardCode { kind, retry } => {
-            let kind = match kind {
-                GuardKind::Authenticator => "authenticator",
-                GuardKind::Email => "email",
+        SignInEvent::NeedGuard { code, phone, retry } => {
+            // `none` means there is no code to type: the phone approval is the only way.
+            let kind = match code {
+                Some(GuardKind::Authenticator) => "authenticator",
+                Some(GuardKind::Email) => "email",
+                None => "none",
             };
             let message = if retry {
                 "That code was not accepted. Check it and try again."
             } else {
                 ""
             };
+            ctx.with_app(|a| a.set_signin_phone(phone));
             set_state(&ctx, "guard", message, Some(kind));
         }
-        SignInEvent::NeedMobileApproval => set_state(&ctx, "mobile", "", None),
         SignInEvent::SignedIn {
             account,
             refresh_token,

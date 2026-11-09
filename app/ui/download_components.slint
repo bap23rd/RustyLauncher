@@ -84,8 +84,10 @@ export component SignInDialog inherits Rectangle {
     // "form" | "working" | "guard" | "mobile" | "error"
     in property <string> state: "form";
     in property <string> message;
-    // "authenticator" | "email"
+    // "authenticator" | "email" | "none" (nothing to type: approve on the phone)
     in property <string> guard-kind: "authenticator";
+    // Steam sent an "is this you?" request to the phone. Approving it finishes the sign-in by itself.
+    in property <bool> phone;
     in-out property <string> username;
     in-out property <string> password;
     in-out property <string> code;
@@ -116,7 +118,7 @@ export component SignInDialog inherits Rectangle {
             spacing: 14px;
 
             Text {
-                text: root.state == "guard" ? "Steam Guard" : root.state == "mobile" ? "Approve on your phone" : root.state == "working" ? "Signing in..." : root.state == "error" ? "Could not sign in" : "Sign in to Steam";
+                text: root.state == "guard" ? (root.phone ? "Approve on your phone" : "Steam Guard") : root.state == "mobile" ? "Approve on your phone" : root.state == "working" ? "Signing in..." : root.state == "error" ? "Could not sign in" : "Sign in to Steam";
                 color: Theme.text-primary;
                 font-size: 18px;
                 font-weight: 700;
@@ -154,17 +156,29 @@ export component SignInDialog inherits Rectangle {
                 wrap: word-wrap;
             }
 
-            if root.open && root.state == "guard" : Text {
-                text: root.guard-kind == "email" ? "Steam emailed a code to the address on your account. Enter it here." : "Enter the code from your Steam Mobile app (or other authenticator).";
-                color: Theme.text-secondary;
+            // The phone request is the easy way, so it comes first. The code is the fallback.
+            if root.open && root.state == "guard" && root.phone : Text {
+                text: "Steam sent a sign-in request to your phone. Open the Steam Mobile app and approve it (\"Yes, it's me\"). This window continues by itself.";
+                color: Theme.text-primary;
                 font-size: 14px;
                 wrap: word-wrap;
             }
-            if root.open && root.state == "guard" : TextField {
+            if root.open && root.state == "guard" && root.guard-kind != "none" : Text {
+                text: root.phone ? "No request on your phone? Enter a Steam Guard code instead:" : (root.guard-kind == "email" ? "Steam emailed a code to the address on your account. Enter it here." : "Enter the code from your Steam Mobile app (or other authenticator).");
+                color: root.phone ? Theme.text-tertiary : Theme.text-secondary;
+                font-size: root.phone ? 13px : 14px;
+                wrap: word-wrap;
+            }
+            if root.open && root.state == "guard" && root.guard-kind != "none" : TextField {
                 text <=> root.code;
                 placeholder: "Steam Guard code";
                 accepted => { root.submit-code(root.code); }
-                init => { self.focus-input(); }
+                // Only grab the keyboard when typing a code is the main way forward.
+                init => {
+                    if (!root.phone) {
+                        self.focus-input();
+                    }
+                }
             }
 
             if root.message != "" : Text {
@@ -180,7 +194,7 @@ export component SignInDialog inherits Rectangle {
                 alignment: end;
                 AppButton { text: root.state == "error" ? "Close" : "Cancel"; primary: false; clicked => { root.cancel(); } }
                 if root.state == "form" : AppButton { text: "Sign in"; clicked => { root.submit(root.username, root.password); } }
-                if root.state == "guard" : AppButton { text: "Submit"; clicked => { root.submit-code(root.code); } }
+                if root.state == "guard" && root.guard-kind != "none" : AppButton { text: "Submit code"; primary: !root.phone; clicked => { root.submit-code(root.code); } }
                 if root.state == "error" : AppButton { text: "Try again"; clicked => { root.retry(); } }
             }
         }
