@@ -1,6 +1,6 @@
 [package]
 name = "rl-steam"
-description = "RustyLauncher rl-steam (placeholder, filled in by a later phase)"
+description = "RustyLauncher Steam access: sign-in, token storage and depot downloads (wraps steamroom)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,3 +9,14 @@ repository.workspace = true
 
 [dependencies]
 rl-core = { path = "../rl-core" }
+steamroom = "0.3.0"
+steamroom-client = "0.3.0"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio-util = "0.7"
+keyring = { version = "3", features = ["windows-native"] }
+zip = { version = "7.3.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

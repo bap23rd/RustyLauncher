@@ -20,9 +20,12 @@ component SectionTitle inherits Text {
 export component SettingsPage inherits Rectangle {
     in property <string> data-dir;
     in property <string> app-version;
-    in property <string> steam-account: "Not signed in";
+    // Empty when not signed in.
+    in property <string> steam-account;
     in property <[PathRow]> path-rows;
     in property <bool> busy;
+    callback sign-in();
+    callback sign-out();
     callback add-path();
     callback remove-path(string);
     callback rescan();
@@ -39,6 +42,32 @@ export component SettingsPage inherits Rectangle {
             PageHeader {
                 title: "Settings";
                 subtitle: "Accounts, install locations and about.";
+            }
+            Card {
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 10px;
+                    SectionTitle { text: "STEAM ACCOUNT"; }
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Text {
+                            text: root.steam-account == "" ? "Not signed in" : "Signed in as " + root.steam-account;
+                            color: Theme.text-primary;
+                            font-size: 15px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                        }
+                        if root.steam-account == "" : AppButton { text: "Sign in"; height: 30px; clicked => { root.sign-in(); } }
+                        if root.steam-account != "" : AppButton { text: "Sign out"; primary: false; height: 30px; clicked => { root.sign-out(); } }
+                    }
+                    Text {
+                        text: "Needed to download older Rust builds (Steam only gives them to accounts that own the game). Only a sign-in token is kept, in Windows Credential Manager. Your password is never saved.";
+                        color: Theme.text-tertiary;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                }
             }
             Card {
                 VerticalLayout {
@@ -72,7 +101,6 @@ export component SettingsPage inherits Rectangle {
                     SectionTitle { text: "ABOUT"; }
                     Row { label: "Version"; value: root.app-version; }
                     Row { label: "Data folder"; value: root.data-dir; }
-                    Row { label: "Steam account"; value: root.steam-account; }
                 }
             }
             Card {

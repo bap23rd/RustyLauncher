@@ -5,6 +5,7 @@
 //! * [`state`]   `state.json` load and atomic save
 //! * [`sidecar`] the per-install `.rustylauncher.json` files (the source of truth)
 //! * [`scan`]    rebuilding the library by scanning install folders
+//! * [`install`] downloads in progress, resume markers, free disk space
 //! * [`launch`]  starting the game
 //! * [`library`] rename, delete and size of installed versions
 //! * [`archive`] zipping a version up and restoring it
@@ -16,6 +17,7 @@ pub mod archive;
 pub mod curated;
 pub mod error;
 mod fsutil;
+pub mod install;
 pub mod launch;
 pub mod library;
 pub mod logging;

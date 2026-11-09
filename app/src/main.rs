@@ -3,8 +3,10 @@
 
 mod actions;
 mod ctx;
+mod downloads;
 mod format;
 mod single_instance;
+mod steam;
 mod tasks;
 
 slint::include_modules!();
@@ -17,6 +19,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const WINDOW_TITLE: &str = "RustyLauncher";
@@ -70,6 +73,11 @@ fn main() {
         archives: RefCell::new(Vec::new()),
         usage: RefCell::new(HashMap::new()),
         curated: RefCell::new(cached),
+        engine: rl_steam::Engine::new(),
+        store: Arc::new(rl_steam::CredentialManager),
+        signin: RefCell::new(None),
+        downloads: RefCell::new(Default::default()),
+        download_dir: RefCell::new(None),
     });
     ctx::install(ctx.clone());
     ctx.refresh();
@@ -91,6 +99,7 @@ fn main() {
         actions::reload_archives(&ctx);
         actions::refresh_usage(&ctx);
         actions::load_curated(&ctx);
+        downloads::refresh_ui(&ctx);
     });
 
     // `RL_STARTUP_PROBE=1` prints the time of the first event-loop turn and exits (used to check the startup budget).
@@ -126,12 +135,26 @@ fn wire_callbacks(app: &App) {
     app.on_rescan(actions::rescan);
     app.on_add_install_path(actions::add_install_path);
     app.on_cancel_task(actions::cancel_task);
+    app.on_signin_submit(|user, pass| steam::begin_sign_in(&user, &pass));
+    app.on_signin_code_submit(|code| steam::submit_code(&code));
+    app.on_signin_cancel(steam::cancel_sign_in);
+    app.on_sign_out(steam::sign_out);
+    app.on_download_build(|_| {}); // the page asks for confirmation first; see dialog_confirmed
+    app.on_start_manual_download(|_, _, _| {});
+    app.on_cancel_download(downloads::cancel);
+    app.on_resume_download(|path| downloads::resume(&path));
+    app.on_change_download_dir(downloads::change_dir);
+    app.on_open_url(|url| actions::open_url(&url));
     app.on_dialog_confirmed(|kind, arg, text| actions::dialog_confirmed(&kind, &arg, &text));
     // The window has no standard title bar, so the close button is ours: hiding the only window ends the event loop.
     let weak = app.as_weak();
     app.on_close_clicked(move || {
         if let Some(app) = weak.upgrade() {
-            let _ = app.hide();
+            if downloads::is_busy() {
+                app.invoke_ask_quit();
+            } else {
+                let _ = app.hide();
+            }
         }
     });
 }

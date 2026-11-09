@@ -114,6 +114,8 @@ export component ArchiveRow inherits Card {
 
 export component CuratedRow inherits Card {
     in property <CuratedTile> build;
+    in property <bool> can-download: true;
+    callback download();
     height: 64px;
     HorizontalLayout {
         padding-left: 16px;
@@ -126,6 +128,16 @@ export component CuratedRow inherits Card {
             Text { text: "Client " + root.build.client + "  ·  Bundles " + root.build.bundle; color: Theme.text-faint; font-size: 12px; overflow: elide; }
         }
         Text { text: root.build.date; color: Theme.text-muted; font-size: 13px; vertical-alignment: center; }
+        Rectangle {
+            width: 120px;
+            AppButton {
+                y: (parent.height - self.height) / 2;
+                text: "Download";
+                height: 32px;
+                active: root.can-download;
+                clicked => { root.download(); }
+            }
+        }
     }
 }
 
@@ -133,6 +145,8 @@ export component CuratedRow inherits Card {
 export component TextField inherits Rectangle {
     in-out property <string> text;
     in property <string> placeholder;
+    // Hide the typed characters (passwords).
+    in property <bool> password;
     callback accepted();
     public function focus-input() { input.focus(); }
 
@@ -151,6 +165,7 @@ export component TextField inherits Rectangle {
         font-size: 14px;
         selection-background-color: Theme.accent;
         selection-foreground-color: white;
+        input-type: root.password ? InputType.password : InputType.text;
         text <=> root.text;
         accepted => { root.accepted(); }
     }

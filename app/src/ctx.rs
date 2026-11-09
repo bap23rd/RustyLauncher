@@ -19,6 +19,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
+use crate::downloads::Manager as DownloadManager;
+
 pub struct Ctx {
     pub paths: AppPaths,
     pub state: RefCell<State>,
@@ -29,6 +31,15 @@ pub struct Ctx {
     /// Disk usage text per install path (filled in by a background thread).
     pub usage: RefCell<HashMap<String, String>>,
     pub curated: RefCell<(Vec<CuratedBuild>, Vec<CuratedBuild>)>,
+    /// Talks to Steam. Its runtime starts on first use.
+    pub engine: rl_steam::Engine,
+    /// Where the Steam sign-in token is kept (Windows Credential Manager).
+    pub store: Arc<dyn rl_steam::TokenStore>,
+    /// The sign-in in progress, if any.
+    pub signin: RefCell<Option<rl_steam::SignInHandle>>,
+    pub downloads: RefCell<DownloadManager>,
+    /// The folder new downloads go to (None: the most recently used install path).
+    pub download_dir: RefCell<Option<PathBuf>>,
 }
 
 thread_local! {
@@ -124,6 +135,14 @@ impl Ctx {
             app.set_versions(ModelRc::from(Rc::new(VecModel::from(tiles))));
             app.set_server_count(state.servers.len() as i32);
             app.set_launch_with_eac(state.settings.launch_with_eac);
+            app.set_steam_account(
+                state
+                    .settings
+                    .steam_username
+                    .clone()
+                    .unwrap_or_default()
+                    .into(),
+            );
 
             match selected.as_deref().and_then(|id| state.version_by_id(id)) {
                 Some(v) => {

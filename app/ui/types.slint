@@ -27,3 +27,20 @@ export struct CuratedTile {
     client: string,
     bundle: string,
 }
+
+// A download that is running or waiting.
+export struct DownloadRow {
+    id: int,
+    name: string,
+    status: string,
+    // 0..1, or negative while the size is still unknown.
+    progress: float,
+    active: bool,
+}
+
+// A download that was started but not finished (can be resumed).
+export struct UnfinishedRow {
+    path: string,
+    name: string,
+    detail: string,
+}

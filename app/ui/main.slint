@@ -1,8 +1,9 @@
 import { Theme } from "theme.slint";
-import { VersionTile, ArchiveTile, PathRow, CuratedTile } from "types.slint";
+import { VersionTile, ArchiveTile, PathRow, CuratedTile, DownloadRow, UnfinishedRow } from "types.slint";
 import { NavItem, QuickLaunch, Toast, Atmosphere } from "components.slint";
 import { TaskBanner, VersionMenu } from "library_components.slint";
 import { Modal } from "dialogs.slint";
+import { SignInDialog } from "download_components.slint";
 import { TitleBar } from "titlebar.slint";
 import { HomePage } from "pages/home.slint";
 import { LibraryPage } from "pages/library.slint";
@@ -10,7 +11,7 @@ import { DownloadPage } from "pages/download.slint";
 import { ServersPage } from "pages/servers.slint";
 import { SettingsPage } from "pages/settings.slint";
 
-export { VersionTile, ArchiveTile, PathRow, CuratedTile }
+export { VersionTile, ArchiveTile, PathRow, CuratedTile, DownloadRow, UnfinishedRow }
 
 export component App inherits Window {
     title: "RustyLauncher";
@@ -53,6 +54,25 @@ export component App inherits Window {
     in property <string> data-dir;
     in property <string> app-version;
 
+    // ---- Steam account and downloads ----
+    // Empty when not signed in.
+    in property <string> steam-account;
+    in property <[DownloadRow]> downloads;
+    in property <[UnfinishedRow]> unfinished;
+    in property <string> download-dir;
+    // The strip shown above the footer while a download runs.
+    in property <bool> download-active;
+    in property <string> download-text;
+    in property <float> download-progress: -1;
+    // Sign-in dialog. State: "form" | "working" | "guard" | "mobile" | "error".
+    in-out property <bool> signin-open;
+    in-out property <string> signin-state: "form";
+    in-out property <string> signin-message;
+    in-out property <string> signin-guard-kind: "authenticator";
+    in-out property <string> signin-username;
+    in-out property <string> signin-password;
+    in-out property <string> signin-code;
+
     // A long job (archive, restore, delete, scan) is running.
     in property <bool> task-active;
     in property <string> task-text;
@@ -84,6 +104,16 @@ export component App inherits Window {
     callback rescan();
     callback add-install-path();
     callback cancel-task();
+    callback signin-submit(string, string);
+    callback signin-code-submit(string);
+    callback signin-cancel();
+    callback sign-out();
+    callback download-build(CuratedTile);
+    callback start-manual-download(string, string, string);
+    callback cancel-download(int);
+    callback resume-download(string);
+    callback change-download-dir();
+    callback open-url(string);
     callback close-clicked();
     // A confirmed dialog: kind ("rename", "delete", ...), the id it was about, and any text typed.
     callback dialog-confirmed(string, string, string);
@@ -92,6 +122,19 @@ export component App inherits Window {
         root.toast-text = text;
         root.toast-kind = kind;
         root.toast-shown = true;
+    }
+    // Closing the window while a download runs: ask first.
+    public function ask-quit() {
+        root.ask("quit", "", "Quit RustyLauncher?",
+            "A download is still running. If you quit now it stops, and you can resume it next time from the Download page.",
+            "Quit", true);
+    }
+    public function open-signin() {
+        root.signin-state = "form";
+        root.signin-message = "";
+        root.signin-password = "";
+        root.signin-code = "";
+        root.signin-open = true;
     }
     function ask(kind: string, arg: string, title: string, body: string, confirm: string, danger: bool) {
         root.dialog-kind = kind;
@@ -209,6 +252,32 @@ export component App inherits Window {
                         recommended: root.curated-recommended;
                         other: root.curated-other;
                         status: root.curated-status;
+                        downloads: root.downloads;
+                        unfinished: root.unfinished;
+                        download-dir: root.download-dir;
+                        steam-account: root.steam-account;
+                        busy: root.task-active || root.download-active;
+                        sign-in => { root.open-signin(); }
+                        change-dir => { root.change-download-dir(); }
+                        open-url(u) => { root.open-url(u); }
+                        cancel-download(id) => { root.cancel-download(id); }
+                        resume(p) => { root.resume-download(p); }
+                        discard(u) => {
+                            root.ask("discard-download", u.path, "Discard this unfinished download?",
+                                u.name + "\n\nThe files downloaded so far are deleted. You can download the build again later.",
+                                "Discard", true);
+                        }
+                        download-build(b) => {
+                            root.ask("download", b.client + "|" + b.bundle + "|" + b.title, "Download " + b.title + "?",
+                                (root.download-dir == "" ? "You have not chosen a download folder yet. Choose one first." : "It will be saved in " + root.download-dir + ".")
+                                + "\n\nRust builds are large, often 20 GB or more, and take a while. You can keep using the launcher meanwhile.",
+                                "Download", false);
+                        }
+                        start-manual(name, client, bundles) => {
+                            root.ask("download", client + "|" + bundles + "|" + name, "Download this build?",
+                                "Game files " + client + "\nBundles " + bundles + "\n\nBoth must come from the same Steam update, or the game may not start.",
+                                "Download", false);
+                        }
                     }
                     if root.page == "servers" : ServersPage { width: parent.width; height: parent.height; }
                     if root.page == "settings" : SettingsPage {
@@ -216,6 +285,9 @@ export component App inherits Window {
                         height: parent.height;
                         data-dir: root.data-dir;
                         app-version: root.app-version;
+                        steam-account: root.steam-account;
+                        sign-in => { root.open-signin(); }
+                        sign-out => { root.sign-out(); }
                         path-rows: root.path-rows;
                         busy: root.task-active;
                         add-path => { root.add-install-path(); }
@@ -275,9 +347,19 @@ export component App inherits Window {
         cancel => { root.cancel-task(); }
     }
 
+    if root.download-active : TaskBanner {
+        x: Theme.sidebar-width + 24px;
+        y: parent.height - Theme.footer-height - self.height - 16px - (root.task-active ? 64px : 0px);
+        width: parent.width - Theme.sidebar-width - 48px;
+        text: root.download-text;
+        progress: root.download-progress;
+        cancellable: true;
+        cancel => { root.cancel-download(-1); }
+    }
+
     Toast {
         x: parent.width - self.width - 24px;
-        y: parent.height - Theme.footer-height - self.height - 16px - (root.task-active ? 64px : 0px);
+        y: parent.height - Theme.footer-height - self.height - 16px - (root.task-active ? 64px : 0px) - (root.download-active ? 64px : 0px);
         text: root.toast-text;
         kind: root.toast-kind;
         shown: root.toast-shown;
@@ -298,6 +380,22 @@ export component App inherits Window {
             root.dialog-confirmed(root.dialog-kind, root.dialog-arg, root.dialog-input);
         }
         cancelled => { root.dialog-open = false; }
+    }
+
+    SignInDialog {
+        width: parent.width;
+        height: parent.height;
+        open: root.signin-open;
+        state: root.signin-state;
+        message: root.signin-message;
+        guard-kind: root.signin-guard-kind;
+        username <=> root.signin-username;
+        password <=> root.signin-password;
+        code <=> root.signin-code;
+        submit(user, pass) => { root.signin-submit(user, pass); root.signin-password = ""; }
+        submit-code(c) => { root.signin-code-submit(c); root.signin-code = ""; }
+        cancel => { root.signin-cancel(); }
+        retry => { root.open-signin(); }
     }
 
     // Thin outline so the frameless window has an edge (hidden when maximised).

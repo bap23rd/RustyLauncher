@@ -1,0 +1,187 @@
+import { Theme } from "theme.slint";
+import { DownloadRow, UnfinishedRow } from "types.slint";
+import { AppButton, Card } from "components.slint";
+import { IconButton, TextField } from "library_components.slint";
+
+// A download in progress or waiting in the queue.
+export component DownloadItem inherits Card {
+    in property <DownloadRow> item;
+    callback cancel();
+    height: 76px;
+    VerticalLayout {
+        padding: 14px;
+        padding-left: 16px;
+        spacing: 6px;
+        HorizontalLayout {
+            spacing: 8px;
+            Text { text: root.item.name; color: Theme.text-primary; font-size: 15px; font-weight: 700; overflow: elide; horizontal-stretch: 1; vertical-alignment: center; }
+            IconButton {
+                icon: @image-url("icons/x-regular.svg");
+                danger: true;
+                clicked => { root.cancel(); }
+            }
+        }
+        Text { text: root.item.status; color: Theme.text-muted; font-size: 12px; overflow: elide; }
+        Rectangle {
+            height: 4px;
+            border-radius: 2px;
+            background: #ffffff1f;
+            Rectangle {
+                x: 0px;
+                width: root.item.progress < 0 ? parent.width * 0.2 : parent.width * Math.min(root.item.progress, 1.0);
+                border-radius: 2px;
+                background: root.item.active ? Theme.accent : Theme.text-disabled;
+                animate width { duration: 150ms; }
+            }
+        }
+    }
+}
+
+// A download that stopped part-way: resume it or throw it away.
+export component UnfinishedItem inherits Card {
+    in property <UnfinishedRow> item;
+    in property <bool> busy;
+    callback resume();
+    callback discard();
+    height: 64px;
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            Text { text: root.item.name; color: Theme.text-primary; font-size: 15px; font-weight: 700; overflow: elide; }
+            Text { text: root.item.detail; color: Theme.text-muted; font-size: 12px; overflow: elide; }
+        }
+        Rectangle {
+            width: 100px;
+            AppButton {
+                y: (parent.height - self.height) / 2;
+                text: "Resume";
+                height: 32px;
+                active: !root.busy;
+                clicked => { root.resume(); }
+            }
+        }
+        Rectangle {
+            width: 30px;
+            IconButton {
+                y: (parent.height - self.height) / 2;
+                icon: @image-url("icons/trash.svg");
+                danger: true;
+                clicked => { root.discard(); }
+            }
+        }
+    }
+}
+
+// The Steam sign-in dialog: account and password, then Steam Guard if Steam asks for it.
+export component SignInDialog inherits Rectangle {
+    in property <bool> open;
+    // "form" | "working" | "guard" | "mobile" | "error"
+    in property <string> state: "form";
+    in property <string> message;
+    // "authenticator" | "email"
+    in property <string> guard-kind: "authenticator";
+    in-out property <string> username;
+    in-out property <string> password;
+    in-out property <string> code;
+    callback submit(string, string);
+    callback submit-code(string);
+    callback cancel();
+    callback retry();
+
+    visible: root.open;
+    Rectangle {
+        background: #000000b3;
+        TouchArea { }
+    }
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 480px;
+        height: panel.preferred-height;
+        background: Theme.surface-2;
+        border-radius: Theme.radius-card;
+        border-width: 1px;
+        border-color: Theme.accent-border;
+        TouchArea { }
+        panel := VerticalLayout {
+            padding: 24px;
+            spacing: 14px;
+
+            Text {
+                text: root.state == "guard" ? "Steam Guard" : root.state == "mobile" ? "Approve on your phone" : root.state == "working" ? "Signing in..." : root.state == "error" ? "Could not sign in" : "Sign in to Steam";
+                color: Theme.text-primary;
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            // Created afresh each time the dialog opens, so the first field takes the keyboard focus.
+            if root.open && root.state == "form" : VerticalLayout {
+                spacing: 12px;
+                Text {
+                    text: "Steam only gives older Rust builds to an account that owns the game. Your password is sent straight to Steam and is never saved. Only a sign-in token is kept, in Windows Credential Manager.";
+                    color: Theme.text-secondary;
+                    font-size: 13px;
+                    wrap: word-wrap;
+                }
+                TextField {
+                    text <=> root.username;
+                    placeholder: "Steam account name";
+                    accepted => { root.submit(root.username, root.password); }
+                    init => { self.focus-input(); }
+                }
+                TextField {
+                    text <=> root.password;
+                    placeholder: "Password";
+                    password: true;
+                    accepted => { root.submit(root.username, root.password); }
+                }
+            }
+            if root.state == "working" : Text {
+                text: "Contacting Steam...";
+                color: Theme.text-secondary;
+                font-size: 14px;
+            }
+            if root.state == "mobile" : Text {
+                text: "Open the Steam Mobile app and approve the sign-in request. This window continues by itself.";
+                color: Theme.text-secondary;
+                font-size: 14px;
+                wrap: word-wrap;
+            }
+            if root.open && root.state == "guard" : VerticalLayout {
+                spacing: 12px;
+                Text {
+                    text: root.guard-kind == "email" ? "Steam emailed a code to the address on your account. Enter it here." : "Enter the code from your Steam Mobile app (or other authenticator).";
+                    color: Theme.text-secondary;
+                    font-size: 14px;
+                    wrap: word-wrap;
+                }
+                TextField {
+                    text <=> root.code;
+                    placeholder: "Steam Guard code";
+                    accepted => { root.submit-code(root.code); }
+                    init => { self.focus-input(); }
+                }
+            }
+            if root.message != "" : Text {
+                text: root.message;
+                color: root.state == "error" ? Theme.error : Theme.warning;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+
+            HorizontalLayout {
+                padding-top: 8px;
+                spacing: 10px;
+                alignment: end;
+                AppButton { text: root.state == "error" ? "Close" : "Cancel"; primary: false; clicked => { root.cancel(); } }
+                if root.state == "form" : AppButton { text: "Sign in"; clicked => { root.submit(root.username, root.password); } }
+                if root.state == "guard" : AppButton { text: "Submit"; clicked => { root.submit-code(root.code); } }
+                if root.state == "error" : AppButton { text: "Try again"; clicked => { root.retry(); } }
+            }
+        }
+    }
+}

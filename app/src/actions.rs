@@ -11,6 +11,7 @@ use rl_core::model::Version;
 use rl_core::paths::{ARCHIVE_DIR_NAME, versions_dir};
 use rl_core::scan;
 use rl_core::sidecar::{VersionSidecar, write_version_sidecar};
+use slint::ComponentHandle;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -130,6 +131,11 @@ pub fn dialog_confirmed(kind: &str, arg: &str, text: &str) {
         }
         "delete-archive" => delete_archive(&ctx, arg),
         "remove-path" => remove_install_path(&ctx, arg),
+        "download" => crate::downloads::start_from_dialog(arg),
+        "quit" => ctx.with_app(|a| {
+            let _ = a.hide();
+        }),
+        "discard-download" => crate::downloads::discard(arg),
         "test" => ctx.toast("Confirmed.", "success"),
         other => tracing::warn!(kind = other, "unknown dialog kind"),
     }
@@ -406,6 +412,17 @@ fn delete_archive(ctx: &Ctx, path: &str) {
             reload_archives(ctx);
         }
         Err(e) => ctx.toast(&format!("Could not delete the archive: {e}"), "error"),
+    }
+}
+
+/// Open a web page in the default browser. Only `https://steamdb.info/` links are used by the app.
+pub fn open_url(url: &str) {
+    if !url.starts_with("https://steamdb.info/") {
+        tracing::warn!(url, "refusing to open an unexpected link");
+        return;
+    }
+    if let Err(err) = std::process::Command::new("explorer").arg(url).spawn() {
+        tracing::warn!(%err, "could not open the browser");
     }
 }
 

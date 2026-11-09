@@ -12,7 +12,7 @@ const CLIENT_EXE: &str = "RustClient.exe";
 /// Read one install folder as a version, or `None` if it is not an install (no game executable).
 /// A damaged sidecar does not hide the install: it is listed under a generated name.
 pub fn version_from_dir(dir: &Path) -> Option<Version> {
-    if !dir.join(CLIENT_EXE).is_file() {
+    if !dir.join(CLIENT_EXE).is_file() || crate::install::has_marker(dir) {
         return None;
     }
     let folder = dir.file_name()?.to_string_lossy().into_owned();

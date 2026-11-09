@@ -1,7 +1,8 @@
 import { Theme } from "../theme.slint";
-import { CuratedTile } from "../types.slint";
-import { PageHeader, EmptyState } from "../components.slint";
-import { CuratedRow } from "../library_components.slint";
+import { CuratedTile, DownloadRow, UnfinishedRow } from "../types.slint";
+import { PageHeader, Card, AppButton } from "../components.slint";
+import { CuratedRow, TextField } from "../library_components.slint";
+import { DownloadItem, UnfinishedItem } from "../download_components.slint";
 
 component SectionTitle inherits Text {
     color: Theme.text-muted;
@@ -9,10 +10,43 @@ component SectionTitle inherits Text {
     font-weight: 600;
 }
 
+component LinkText inherits Rectangle {
+    in property <string> text;
+    callback clicked();
+    height: 22px;
+    Text {
+        text: root.text;
+        color: ta.has-hover ? Theme.accent-hover : Theme.accent;
+        font-size: 13px;
+        vertical-alignment: center;
+    }
+    ta := TouchArea {
+        mouse-cursor: MouseCursor.pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
 export component DownloadPage inherits Rectangle {
     in property <[CuratedTile]> recommended;
     in property <[CuratedTile]> other;
     in property <string> status;
+    in property <[DownloadRow]> downloads;
+    in property <[UnfinishedRow]> unfinished;
+    in property <string> download-dir;
+    in property <string> steam-account;
+    in property <bool> busy;
+    callback download-build(CuratedTile);
+    callback start-manual(string, string, string);
+    callback cancel-download(int);
+    callback resume(string);
+    callback discard(UnfinishedRow);
+    callback change-dir();
+    callback sign-in();
+    callback open-url(string);
+
+    property <string> manual-name;
+    property <string> manual-client;
+    property <string> manual-bundles;
 
     Flickable {
         content-height: content.preferred-height;
@@ -23,21 +57,96 @@ export component DownloadPage inherits Rectangle {
                 title: "Download";
                 subtitle: "Get an older Rust build from Steam. " + root.status;
             }
+            Card {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 10px;
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Text { text: "Steam account"; width: 130px; color: Theme.text-muted; font-size: 13px; vertical-alignment: center; }
+                        Text {
+                            text: root.steam-account == "" ? "Not signed in. Older builds need an account that owns Rust." : root.steam-account;
+                            color: root.steam-account == "" ? Theme.warning : Theme.text-secondary;
+                            font-size: 13px;
+                            vertical-alignment: center;
+                            overflow: elide;
+                            horizontal-stretch: 1;
+                        }
+                        if root.steam-account == "" : AppButton { text: "Sign in"; height: 30px; clicked => { root.sign-in(); } }
+                    }
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Text { text: "Download folder"; width: 130px; color: Theme.text-muted; font-size: 13px; vertical-alignment: center; }
+                        Text {
+                            text: root.download-dir == "" ? "Not chosen yet" : root.download-dir;
+                            color: root.download-dir == "" ? Theme.warning : Theme.text-secondary;
+                            font-size: 13px;
+                            vertical-alignment: center;
+                            overflow: elide;
+                            horizontal-stretch: 1;
+                        }
+                        AppButton { text: "Change"; primary: false; height: 30px; clicked => { root.change-dir(); } }
+                    }
+                }
+            }
+
+            if root.downloads.length > 0 : VerticalLayout {
+                spacing: 12px;
+                Rectangle { height: 4px; }
+                SectionTitle { text: "DOWNLOADS"; }
+                for d in root.downloads : DownloadItem { item: d; cancel => { root.cancel-download(d.id); } }
+            }
+            if root.unfinished.length > 0 : VerticalLayout {
+                spacing: 12px;
+                Rectangle { height: 4px; }
+                SectionTitle { text: "UNFINISHED DOWNLOADS"; }
+                for u in root.unfinished : UnfinishedItem {
+                    item: u;
+                    busy: root.busy;
+                    resume => { root.resume(u.path); }
+                    discard => { root.discard(u); }
+                }
+            }
+
             Rectangle { height: 8px; }
             SectionTitle { text: "RECOMMENDED BUILDS"; }
             if root.recommended.length == 0 : Text { text: "Nothing to show yet."; color: Theme.text-tertiary; font-size: 13px; }
-            for b in root.recommended : CuratedRow { build: b; }
+            for b in root.recommended : CuratedRow { build: b; download => { root.download-build(b); } }
             Rectangle { height: 8px; }
             SectionTitle { text: "OTHER BUILDS"; }
             if root.other.length == 0 : Text { text: "Nothing to show yet."; color: Theme.text-tertiary; font-size: 13px; }
-            for b in root.other : CuratedRow { build: b; }
+            for b in root.other : CuratedRow { build: b; download => { root.download-build(b); } }
+
             Rectangle { height: 8px; }
-            Text {
-                text: "Downloading arrives with the in-process Steam downloader (Phase 4). You will be able to pick a build above, or enter your own manifest IDs.";
-                color: Theme.text-faint;
-                font-size: 12px;
-                wrap: word-wrap;
+            SectionTitle { text: "DOWNLOAD BY MANIFEST ID"; }
+            Card {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 10px;
+                    Text {
+                        text: "For a build that is not listed. A build is two parts that must come from the same Steam update: the game files (depot 252495) and the content bundles (depot 252494). Look both IDs up on SteamDB.";
+                        color: Theme.text-tertiary;
+                        font-size: 13px;
+                        wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        spacing: 20px;
+                        LinkText { text: "Game files: depot 252495 on SteamDB"; clicked => { root.open-url("https://steamdb.info/depot/252495/manifests/"); } }
+                        LinkText { text: "Bundles: depot 252494 on SteamDB"; clicked => { root.open-url("https://steamdb.info/depot/252494/manifests/"); } }
+                    }
+                    TextField { text <=> root.manual-name; placeholder: "Name (optional)"; }
+                    TextField { text <=> root.manual-client; placeholder: "Game files manifest ID (depot 252495)"; }
+                    TextField { text <=> root.manual-bundles; placeholder: "Bundles manifest ID (depot 252494)"; }
+                    HorizontalLayout {
+                        alignment: start;
+                        AppButton {
+                            text: "Download";
+                            clicked => { root.start-manual(root.manual-name, root.manual-client, root.manual-bundles); }
+                        }
+                    }
+                }
             }
+            Rectangle { height: 16px; }
         }
     }
 }
