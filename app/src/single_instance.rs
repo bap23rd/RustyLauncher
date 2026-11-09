@@ -14,8 +14,22 @@ mod imp {
 
     /// Returns `true` if this is the first instance (and keeps the guard for the process lifetime).
     /// Returns `false` if another instance already exists, after trying to focus its window.
-    pub fn acquire(window_title: &str) -> bool {
-        let name = wide("Local\\RustyLauncher.SingleInstance");
+    pub fn acquire(window_title: &str, data_dir_key: Option<&str>) -> bool {
+        // Normal runs share one guard. A run with its own data folder (RL_DATA_DIR) gets its own,
+        // so a test copy never collides with the copy you are using.
+        let name = match data_dir_key {
+            None => "Local\\RustyLauncher.SingleInstance".to_string(),
+            Some(dir) => {
+                let hash = dir
+                    .to_lowercase()
+                    .bytes()
+                    .fold(0xcbf29ce484222325u64, |h, b| {
+                        (h ^ u64::from(b)).wrapping_mul(0x100000001b3)
+                    });
+                format!("Local\\RustyLauncher.SingleInstance.{hash:x}")
+            }
+        };
+        let name = wide(&name);
         // SAFETY: plain Win32 calls with valid, NUL-terminated wide strings. The mutex handle is
         // deliberately never closed: it must live as long as the process.
         unsafe {
@@ -42,7 +56,7 @@ mod imp {
 
 #[cfg(not(windows))]
 mod imp {
-    pub fn acquire(_window_title: &str) -> bool {
+    pub fn acquire(_window_title: &str, _data_dir_key: Option<&str>) -> bool {
         true
     }
 }

@@ -39,7 +39,8 @@ fn main() {
         "RustyLauncher starting"
     );
 
-    if !single_instance::acquire(WINDOW_TITLE) {
+    let data_dir_key = std::env::var("RL_DATA_DIR").ok();
+    if !single_instance::acquire(WINDOW_TITLE, data_dir_key.as_deref()) {
         tracing::info!("another instance is already running; focused it and exiting");
         return;
     }
@@ -88,6 +89,34 @@ fn main() {
 
     wire_callbacks(&app);
 
+    // Debug builds only: `RL_DEMO_DOWNLOAD=1` shows a made-up running download, for checking its layout.
+    #[cfg(debug_assertions)]
+    if std::env::var_os("RL_DEMO_DOWNLOAD").is_some() {
+        use slint::{ModelRc, VecModel};
+        app.set_downloads(ModelRc::from(Rc::new(VecModel::from(vec![
+            DownloadRow {
+                id: 1,
+                name: "Rust Stable July 2023".into(),
+                status: "78%  ·  16.4 GB of 21.1 GB  ·  23.4 MB/s  ·  about 3 min left".into(),
+                progress: 0.78,
+                active: true,
+            },
+            DownloadRow {
+                id: 2,
+                name: "Rust pre-graphics overhaul".into(),
+                status: "Waiting in line".into(),
+                progress: 0.0,
+                active: false,
+            },
+        ]))));
+        app.set_download_active(true);
+        app.set_download_text(
+            "Downloading Rust Stable July 2023:  78%  ·  16.4 GB of 21.1 GB  ·  23.4 MB/s  ·  about 3 min left"
+                .into(),
+        );
+        app.set_download_progress(0.78);
+    }
+
     if let Some(notice) = startup_notice {
         app.invoke_show_toast(notice.into(), "error".into());
     }
@@ -99,7 +128,10 @@ fn main() {
         actions::reload_archives(&ctx);
         actions::refresh_usage(&ctx);
         actions::load_curated(&ctx);
-        downloads::refresh_ui(&ctx);
+        // (the debug-only demo download would be wiped by this refresh)
+        if !(cfg!(debug_assertions) && std::env::var_os("RL_DEMO_DOWNLOAD").is_some()) {
+            downloads::refresh_ui(&ctx);
+        }
     });
 
     // `RL_STARTUP_PROBE=1` prints the time of the first event-loop turn and exits (used to check the startup budget).

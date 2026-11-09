@@ -186,7 +186,7 @@ export component TaskBanner inherits Rectangle {
     in property <bool> cancellable;
     callback cancel();
 
-    height: 48px;
+    height: 60px;
     background: Theme.surface-1;
     border-radius: Theme.radius-card;
     border-width: 1px;
@@ -198,7 +198,7 @@ export component TaskBanner inherits Rectangle {
         VerticalLayout {
             horizontal-stretch: 1;
             alignment: center;
-            spacing: 6px;
+            spacing: 9px;
             Text { text: root.text; color: Theme.text-primary; font-size: 13px; overflow: elide; }
             Rectangle {
                 height: 4px;

@@ -64,6 +64,8 @@ export component App inherits Window {
     in property <bool> download-active;
     in property <string> download-text;
     in property <float> download-progress: -1;
+    // The Download page shows the download in full, so the strip is only for the other pages.
+    property <bool> show-download-strip: root.download-active && root.page != "download";
     // Sign-in dialog. State: "form" | "working" | "guard" | "mobile" | "error".
     in-out property <bool> signin-open;
     in-out property <string> signin-state: "form";
@@ -347,9 +349,9 @@ export component App inherits Window {
         cancel => { root.cancel-task(); }
     }
 
-    if root.download-active : TaskBanner {
+    if root.show-download-strip : TaskBanner {
         x: Theme.sidebar-width + 24px;
-        y: parent.height - Theme.footer-height - self.height - 16px - (root.task-active ? 64px : 0px);
+        y: parent.height - Theme.footer-height - self.height - 16px - (root.task-active ? 76px : 0px);
         width: parent.width - Theme.sidebar-width - 48px;
         text: root.download-text;
         progress: root.download-progress;
@@ -359,7 +361,7 @@ export component App inherits Window {
 
     Toast {
         x: parent.width - self.width - 24px;
-        y: parent.height - Theme.footer-height - self.height - 16px - (root.task-active ? 64px : 0px) - (root.download-active ? 64px : 0px);
+        y: parent.height - Theme.footer-height - self.height - 16px - (root.task-active ? 76px : 0px) - (root.show-download-strip ? 76px : 0px);
         text: root.toast-text;
         kind: root.toast-kind;
         shown: root.toast-shown;

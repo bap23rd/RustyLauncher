@@ -7,11 +7,13 @@ import { IconButton, TextField } from "library_components.slint";
 export component DownloadItem inherits Card {
     in property <DownloadRow> item;
     callback cancel();
-    height: 76px;
+    height: 104px;
     VerticalLayout {
-        padding: 14px;
-        padding-left: 16px;
-        spacing: 6px;
+        padding-left: 18px;
+        padding-right: 14px;
+        padding-top: 14px;
+        padding-bottom: 20px;
+        spacing: 8px;
         HorizontalLayout {
             spacing: 8px;
             Text { text: root.item.name; color: Theme.text-primary; font-size: 15px; font-weight: 700; overflow: elide; horizontal-stretch: 1; vertical-alignment: center; }
@@ -23,13 +25,13 @@ export component DownloadItem inherits Card {
         }
         Text { text: root.item.status; color: Theme.text-muted; font-size: 12px; overflow: elide; }
         Rectangle {
-            height: 4px;
-            border-radius: 2px;
+            height: 6px;
+            border-radius: 3px;
             background: #ffffff1f;
             Rectangle {
                 x: 0px;
                 width: root.item.progress < 0 ? parent.width * 0.2 : parent.width * Math.min(root.item.progress, 1.0);
-                border-radius: 2px;
+                border-radius: 3px;
                 background: root.item.active ? Theme.accent : Theme.text-disabled;
                 animate width { duration: 150ms; }
             }
@@ -107,6 +109,8 @@ export component SignInDialog inherits Rectangle {
         border-width: 1px;
         border-color: Theme.accent-border;
         TouchArea { }
+        // Every part is a direct child of this one layout (no nested layouts), so the panel is always
+        // tall enough for its text and buttons.
         panel := VerticalLayout {
             padding: 24px;
             spacing: 14px;
@@ -119,27 +123,25 @@ export component SignInDialog inherits Rectangle {
             }
 
             // Created afresh each time the dialog opens, so the first field takes the keyboard focus.
-            if root.open && root.state == "form" : VerticalLayout {
-                spacing: 12px;
-                Text {
-                    text: "Steam only gives older Rust builds to an account that owns the game. Your password is sent straight to Steam and is never saved. Only a sign-in token is kept, in Windows Credential Manager.";
-                    color: Theme.text-secondary;
-                    font-size: 13px;
-                    wrap: word-wrap;
-                }
-                TextField {
-                    text <=> root.username;
-                    placeholder: "Steam account name";
-                    accepted => { root.submit(root.username, root.password); }
-                    init => { self.focus-input(); }
-                }
-                TextField {
-                    text <=> root.password;
-                    placeholder: "Password";
-                    password: true;
-                    accepted => { root.submit(root.username, root.password); }
-                }
+            if root.open && root.state == "form" : Text {
+                text: "Steam only gives older Rust builds to an account that owns the game. Your password is sent straight to Steam and is never saved. Only a sign-in token is kept, in Windows Credential Manager.";
+                color: Theme.text-secondary;
+                font-size: 13px;
+                wrap: word-wrap;
             }
+            if root.open && root.state == "form" : TextField {
+                text <=> root.username;
+                placeholder: "Steam account name";
+                accepted => { root.submit(root.username, root.password); }
+                init => { self.focus-input(); }
+            }
+            if root.open && root.state == "form" : TextField {
+                text <=> root.password;
+                placeholder: "Password";
+                password: true;
+                accepted => { root.submit(root.username, root.password); }
+            }
+
             if root.state == "working" : Text {
                 text: "Contacting Steam...";
                 color: Theme.text-secondary;
@@ -151,21 +153,20 @@ export component SignInDialog inherits Rectangle {
                 font-size: 14px;
                 wrap: word-wrap;
             }
-            if root.open && root.state == "guard" : VerticalLayout {
-                spacing: 12px;
-                Text {
-                    text: root.guard-kind == "email" ? "Steam emailed a code to the address on your account. Enter it here." : "Enter the code from your Steam Mobile app (or other authenticator).";
-                    color: Theme.text-secondary;
-                    font-size: 14px;
-                    wrap: word-wrap;
-                }
-                TextField {
-                    text <=> root.code;
-                    placeholder: "Steam Guard code";
-                    accepted => { root.submit-code(root.code); }
-                    init => { self.focus-input(); }
-                }
+
+            if root.open && root.state == "guard" : Text {
+                text: root.guard-kind == "email" ? "Steam emailed a code to the address on your account. Enter it here." : "Enter the code from your Steam Mobile app (or other authenticator).";
+                color: Theme.text-secondary;
+                font-size: 14px;
+                wrap: word-wrap;
             }
+            if root.open && root.state == "guard" : TextField {
+                text <=> root.code;
+                placeholder: "Steam Guard code";
+                accepted => { root.submit-code(root.code); }
+                init => { self.focus-input(); }
+            }
+
             if root.message != "" : Text {
                 text: root.message;
                 color: root.state == "error" ? Theme.error : Theme.warning;
